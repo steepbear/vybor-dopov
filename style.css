@@ -5,3 +5,45 @@
 .scope-controls .microcopy{flex:2;min-width:210px;margin:0 0 6px}
 .student-selector .field-wrap{min-width:145px}
 @media(max-width:670px){.scope-controls .field-wrap,.scope-controls .microcopy{flex:1 1 100%}}
+/* V3 — формы управления данными филиала */
+.admin-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 24px}
+.admin-nav-btn{border:1px solid #e4eaf3;background:#fff;border-radius:13px;padding:16px 12px;font-size:13px;font-weight:700;text-align:center;color:#586980;box-shadow:0 3px 12px #18305208;transition:border-color .15s,background .15s;white-space:nowrap}
+.admin-nav-btn span{font-size:18px;margin-right:7px;vertical-align:middle}
+.admin-nav-btn:hover{border-color:#b4c5f4;color:#3457c6}
+.admin-nav-btn.active{border-color:#acc3ff;background:#eaf0ff;color:#365bd2}
+.form-grid{display:flex;flex-wrap:wrap;align-items:end;gap:16px 18px;margin:3px 0 18px}
+.form-grid .field-wrap{max-width:none;min-width:200px;flex:2}
+.form-grid .field-wrap:has(#newStudentClass),.form-grid .field-wrap:has(#groupNumber){flex:1}
+.field-wrap input,.offer-toolbar input[type=search]{width:100%;background:white;border:1px solid #d9e2ef;border-radius:10px;min-height:42px;padding:10px 13px;font-size:14px;color:#20344f;outline:0}
+.field-wrap input:focus,.offer-toolbar input:focus{border-color:#6485e7;box-shadow:0 0 0 3px #5579eb22}
+.form-action{display:flex;align-items:end;align-self:end;min-height:43px}
+.admin-section:has(>form){padding:23px}
+.schedule-editor-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:23px 0 12px}
+.schedule-editor-head strong{font-size:14px;color:#314366}
+.slot-picker{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.day-choices{border:1px solid #e2e9f3;min-width:0;border-radius:12px;margin:0;padding:12px 10px 10px;background:#f9fbff}
+.day-choices legend{padding:0 3px;color:#677b96;font-size:12px;font-weight:750}
+.slot-option{display:flex;cursor:pointer;align-items:center;gap:8px;background:#fff;border:1px solid #e2e9f3;padding:10px 9px;border-radius:9px;margin:6px 0 0;min-width:0;color:#3a4b69;font-size:12px}
+.slot-option:has(input:checked){border-color:#6c8bf0;background:#ecf1ff;color:#2f50b4}
+.slot-option input{flex:none;accent-color:#4974df;min-width:16px;min-height:16px}
+.slot-option span{min-width:0;overflow-wrap:anywhere;font-weight:650}
+.slot-option small{display:block;font-size:10px;white-space:nowrap;font-weight:400;color:#8291a8}
+.form-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:20px}
+.form-error{color:#a44134;font-size:13px;background:#fff0eb;border:1px solid #f8d3c8;border-radius:9px;padding:10px;margin:12px 0 0}
+.table-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.table-actions .btn{white-space:nowrap}
+.table-actions .btn:disabled{opacity:.45}
+.offer-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}
+.offer-toolbar input[type=search]{width: min(320px,100%)}
+.checkbox-row{white-space:nowrap;cursor:pointer;color:#506480;font-size:13px;display:flex;align-items:center;gap:7px}
+.student-checkbox-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-height:270px;overflow-y:auto;padding:4px 2px}
+.student-check{display:flex;align-items:center;gap:10px;border:1px solid #e2eaf4;border-radius:11px;padding:12px 10px;cursor:pointer;min-width:0;background:#fff}
+.student-check:has(input:checked){background:#eef3ff;border-color:#abc4fd}
+.student-check input{accent-color:#5176e6;flex:none;width:17px;height:17px}
+.student-check span{min-width:0}
+.student-check strong{font-size:12px;display:block;line-height:1.4}
+.student-check small{display:block;color:#8290a5;font-size:10.5px}
+.status-accepted{display:inline-flex;color:#277d60;background:#e7f7ef;border-radius:30px;padding:4px 9px;font-size:11px}
+.admin-footer{gap:12px;flex-wrap:wrap}
+@media(max-width:900px){.admin-nav{grid-template-columns:repeat(2,minmax(0,1fr))}.slot-picker{grid-template-columns:repeat(3,minmax(0,1fr))}.student-checkbox-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.admin-nav{gap:8px}.admin-nav-btn{font-size:11px;padding:11px 5px;white-space:normal}.admin-nav-btn span{font-size:16px;margin-right:2px}.form-grid{display:grid;grid-template-columns:1fr}.form-grid .field-wrap,.form-action{min-width:0;width:100%}.form-action .btn{width:100%}.slot-picker{grid-template-columns:repeat(2,minmax(0,1fr))}.day-choices{padding:9px 7px}.slot-option{padding:8px 6px;gap:5px;font-size:11px}.slot-option small{font-size:9px}.schedule-editor-head{flex-wrap:wrap}.student-checkbox-grid{grid-template-columns:1fr}.offer-toolbar{align-items:stretch;flex-direction:column;gap:9px}.offer-toolbar input[type=search]{width:100%}.form-actions>.btn{flex:1}.admin-section:has(>form){padding:17px}}

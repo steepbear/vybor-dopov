@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f6f8fc">
   <meta name="description" content="Демонстрационный сервис ручного подбора дополнительных занятий">
-  <title>Выбор допов — интерактивный прототип</title>
+  <title>Выбор допов — версия V3</title>
   <link rel="stylesheet" href="style.css">
   <script src="data.js" defer></script>
   <script src="app.js" defer></script>
@@ -25,7 +25,7 @@
   </header>
 
   <main class="shell">
-    <div class="demo-notice"><span class="dot"></span><strong>Демонстрационная версия</strong><span>Ученики вымышленные. Расписания по филиалам и параллелям — учебные примеры, не реальные назначения. Данные хранятся только в этом браузере.</span></div>
+    <div class="demo-notice"><span class="dot"></span><strong>Демонстрационная версия</strong><span>Ученики вымышленные. Расписания по филиалам и параллелям — учебные примеры, не реальные назначения. Изменения сохраняются в этом браузере, а не на GitHub. Для совместной работы нужна база данных.</span></div>
     <section id="studentView">
       <div class="page-intro">
         <div><div class="overline">Личный кабинет ученика</div><h1>Собери своё расписание</h1><p>Выбирай интересные занятия и конкретные группы. Мы проследим, чтобы они не пересекались по времени.</p></div>
@@ -74,12 +74,19 @@
     </section>
 
     <section id="adminView" hidden>
-      <div class="page-intro"><div><div class="overline">Панель методолога · демонстрация</div><h1>Контроль выбора занятий</h1><p>Подтверждённые расписания и ограничения групп. В тестовой версии это локальные данные, без настоящих прав доступа.</p></div></div>
+      <div class="page-intro"><div><div class="overline">Панель методолога · демонстрация</div><h1>Управление дополнительными занятиями</h1><p>Создавайте учеников, направления и расписания, назначайте предложения олимпиады и просматривайте результаты.</p></div></div>
       <div class="card scope-controls">
-        <div class="field-wrap"><label for="adminBranch">Филиал методолога</label><select id="adminBranch"></select></div>
+        <div class="field-wrap"><label for="adminBranch">Филиал (демо-переключение)</label><select id="adminBranch"></select></div>
         <div class="field-wrap"><label for="adminGrade">Параллель</label><select id="adminGrade"></select></div>
-        <span class="microcopy">Отчёты и группы ниже относятся только к выбранному филиалу и параллели.</span>
+        <span class="microcopy">В реальной версии методолог закреплён за одним филиалом; здесь переключатель имитирует разные кабинеты.</span>
       </div>
+      <nav class="admin-nav" aria-label="Разделы методолога">
+        <button type="button" class="admin-nav-btn active" data-admin-tab="overview"><span>▤</span> Отчёты</button>
+        <button type="button" class="admin-nav-btn" data-admin-tab="students"><span>♙</span> Ученики</button>
+        <button type="button" class="admin-nav-btn" data-admin-tab="groups"><span>▦</span> Допы и расписание</button>
+        <button type="button" class="admin-nav-btn" data-admin-tab="olympiads"><span>★</span> Олимпиады</button>
+      </nav>
+      <div data-admin-panel="overview">
       <div class="metrics" id="metrics"></div>
       <section class="card admin-section">
         <div class="section-heading"><div class="section-icon blue">≡</div><div><h2>Ученики без подтверждённого выбора</h2><p>В отчёт попадают ученики, которые пока не подтвердили расписание</p></div></div>
@@ -95,12 +102,58 @@
         <div class="section-heading"><div class="section-icon green">✓</div><div><h2>Подтверждённые расписания</h2><p>Методолог может открыть подтверждённый выбор для изменений</p></div></div>
         <div class="table-scroll"><table class="data-table"><thead><tr><th>Ученик</th><th>Класс</th><th>Выбрано</th><th>Действие</th></tr></thead><tbody id="confirmedBody"></tbody></table></div>
       </section>
-      <section class="card admin-section">
-        <div class="section-heading"><div class="section-icon gold">⚙</div><div><h2>Группы параллели</h2><p>Группы и расписания строго принадлежат выбранным филиалу и параллели; название направления может повторяться в других параллелях.</p></div></div>
-        <div class="table-scroll"><table class="data-table"><thead><tr><th>Направление</th><th>Группа</th><th>Занятия</th></tr></thead><tbody id="adminGroupsBody"></tbody></table></div>
-        <p class="microcopy">В этой версии список только для просмотра. Редактирование расписаний и создание групп через панель методолога запланировано отдельно.</p>
-      </section>
-      <div class="admin-footer"><button id="resetDemo" class="btn danger-outline" type="button">Сбросить тестовые результаты</button></div>
+      </div>
+      <div data-admin-panel="students" hidden>
+        <section class="card admin-section">
+          <div class="section-heading"><div class="section-icon green">＋</div><div><h2>Добавить ученика</h2><p>Филиал и параллель берутся из выбранного кабинета методолога</p></div></div>
+          <form id="studentForm" class="form-grid">
+            <div class="field-wrap"><label for="newStudentName">Фамилия и имя</label><input id="newStudentName" type="text" maxlength="100" placeholder="Например, Тестовый ученик" required autocomplete="off"></div>
+            <div class="field-wrap"><label for="newStudentClass">Буква класса</label><select id="newStudentClass"><option>А</option><option>Б</option><option>В</option><option>Г</option><option>Д</option><option>Е</option><option>Ж</option></select></div>
+            <div class="form-action"><button class="btn primary" type="submit">+ Добавить ученика</button></div>
+          </form>
+          <p class="microcopy">Добавленный ученик сразу появится в кабинете ученика и отчётах своего филиала и параллели.</p>
+        </section>
+        <section class="card admin-section"><div class="section-heading"><div class="section-icon blue">♙</div><div><h2>Ученики параллели</h2><p id="studentsScopeLabel"></p></div></div>
+          <div class="table-scroll"><table class="data-table"><thead><tr><th>Ученик</th><th>Класс</th><th>Выбор</th><th>Действие</th></tr></thead><tbody id="manageStudentsBody"></tbody></table></div>
+        </section>
+      </div>
+      <div data-admin-panel="groups" hidden>
+        <section class="card admin-section">
+          <div class="section-heading"><div class="section-icon blue">＋</div><div><h2 id="groupFormTitle">Создать доп и расписание группы</h2><p>Создайте обычный доп или олимпиаду. Название, группы и расписание задаются одинаково. Олимпиаду затем предлагают выбранным ученикам.</p></div></div>
+          <form id="groupForm">
+            <input type="hidden" id="editingGroupId">
+            <div class="form-grid">
+              <div class="field-wrap"><label for="groupType">Тип допа</label><select id="groupType"><option value="regular">Обычный доп</option><option value="olympiad">Олимпиада</option></select></div>
+              <div class="field-wrap"><label for="groupSubject">Название направления</label><input id="groupSubject" list="subjectSuggestions" maxlength="100" required placeholder="Например, Робототехника" autocomplete="off"><datalist id="subjectSuggestions"></datalist></div>
+              <div class="field-wrap"><label for="groupNumber">Номер или название группы</label><input id="groupNumber" maxlength="30" required placeholder="Например, 1 или Начинающие" autocomplete="off"></div>
+            </div>
+            <div class="schedule-editor-head"><strong>Занятия по дням недели</strong><span class="microcopy">Выберите один или несколько слотов</span></div>
+            <div class="slot-picker" id="groupSlotPicker"></div>
+            <p id="groupFormError" class="form-error" role="alert" hidden></p>
+            <div class="form-actions"><button class="btn primary" id="saveGroup" type="submit">+ Создать доп и группу</button><button class="btn ghost" id="cancelEditGroup" type="button" hidden>Отменить редактирование</button></div>
+          </form>
+        </section>
+        <section class="card admin-section"><div class="section-heading"><div class="section-icon purple">▤</div><div><h2>Созданные группы</h2><p>Названия направлений могут повторяться в других параллелях, но расписания и записи не смешиваются</p></div></div>
+          <div class="table-scroll"><table class="data-table"><thead><tr><th>Направление</th><th>Тип</th><th>Группа</th><th>Расписание</th><th>Записей / предложений</th><th>Действия</th></tr></thead><tbody id="adminGroupsBody"></tbody></table></div>
+        </section>
+      </div>
+      <div data-admin-panel="olympiads" hidden>
+        <section class="card admin-section">
+          <div class="section-heading"><div class="section-icon gold">★</div><div><h2>Предложить олимпиаду</h2><p>Сначала создайте олимпиаду и её группу в разделе «Допы и расписание», затем выберите группу и учеников. Согласие остаётся за учеником.</p></div></div>
+          <form id="olympiadForm">
+            <div class="field-wrap olympiad-group-field"><label for="olympiadGroup">Созданная олимпиада и группа</label><select id="olympiadGroup"></select><p id="noOlympiadGroups" class="microcopy" hidden>В этой параллели ещё нет олимпиад. Создайте первую в разделе «Допы и расписание», выбрав тип «Олимпиада».</p></div>
+            <div class="schedule-editor-head"><strong>Кому предложить</strong><span id="olympiadStudentsCount" class="microcopy"></span></div>
+            <div class="offer-toolbar"><label class="checkbox-row"><input type="checkbox" id="selectAllOlympiad"> Выбрать показанных</label><input id="olympiadStudentSearch" type="search" placeholder="Поиск ученика или класса" aria-label="Поиск ученика"></div>
+            <div id="olympiadStudentPicker" class="student-checkbox-grid"></div>
+            <p id="olympiadFormError" class="form-error" role="alert" hidden></p>
+            <div class="form-actions"><button type="submit" class="btn primary" id="assignOlympiadButton">Назначить предложения</button><button type="button" id="clearOlympiadForm" class="btn ghost">Очистить форму</button></div>
+          </form>
+        </section>
+        <section class="card admin-section"><div class="section-heading"><div class="section-icon green">✓</div><div><h2>Назначенные предложения</h2><p>«Предложено» ещё не означает согласие. Ученик отдельно принимает олимпиаду при выборе допов.</p></div></div>
+          <div class="table-scroll"><table class="data-table"><thead><tr><th>Ученик</th><th>Класс</th><th>Олимпиада · группа</th><th>Расписание</th><th>Статус</th><th>Действие</th></tr></thead><tbody id="olympiadAssignmentsBody"></tbody></table></div>
+        </section>
+      </div>
+      <div class="admin-footer"><button id="exportData" class="btn outline" type="button">Экспорт тестовых данных (JSON)</button><button id="resetDemo" class="btn danger-outline" type="button">Сбросить все изменения</button></div>
     </section>
     <footer class="site-footer">Выбор допов · прототип на GitHub Pages · без серверной части</footer>
   </main>

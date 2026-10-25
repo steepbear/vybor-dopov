@@ -2534,297 +2534,407 @@ window.DOP_DATA = {
           "slot": 1
         }
       ]
+    },
+    {
+      "id": "olymp-b1-g2-01",
+      "subject": "Олимпиада",
+      "group": "Демо-1",
+      "branchId": "b1",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 1,
+          "slot": 1
+        }
+      ]
+    },
+    {
+      "id": "olymp-b1-g2-02",
+      "subject": "Олимпиада",
+      "group": "Демо-2",
+      "branchId": "b1",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 1,
+          "slot": 2
+        }
+      ]
+    },
+    {
+      "id": "olymp-b1-g2-03",
+      "subject": "Олимпиада",
+      "group": "Демо-3",
+      "branchId": "b1",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 3,
+          "slot": 2
+        }
+      ]
+    },
+    {
+      "id": "olymp-b1-g2-04",
+      "subject": "Олимпиада",
+      "group": "Демо-4",
+      "branchId": "b1",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 3,
+          "slot": 1
+        }
+      ]
+    },
+    {
+      "id": "olymp-b1-g2-05",
+      "subject": "Олимпиада",
+      "group": "Демо-5",
+      "branchId": "b1",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 2,
+          "slot": 1
+        }
+      ]
+    },
+    {
+      "id": "olymp-b1-g2-06",
+      "subject": "Олимпиада",
+      "group": "Демо-6",
+      "branchId": "b1",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 2,
+          "slot": 2
+        }
+      ]
+    },
+    {
+      "id": "olymp-b1-g2-07",
+      "subject": "Олимпиада",
+      "group": "Демо-7",
+      "branchId": "b1",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 4,
+          "slot": 2
+        }
+      ]
+    },
+    {
+      "id": "olymp-b1-g2-08",
+      "subject": "Олимпиада",
+      "group": "Демо-8",
+      "branchId": "b1",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 4,
+          "slot": 1
+        }
+      ]
+    },
+    {
+      "id": "olymp-b1-g2-09",
+      "subject": "Олимпиада",
+      "group": "Демо-9",
+      "branchId": "b1",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 5,
+          "slot": 1
+        }
+      ]
+    },
+    {
+      "id": "olymp-b1-g2-10",
+      "subject": "Олимпиада",
+      "group": "Демо-10",
+      "branchId": "b1",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 5,
+          "slot": 2
+        }
+      ]
+    },
+    {
+      "id": "olymp-b2-g2-01",
+      "subject": "Олимпиада",
+      "group": "Демо-1",
+      "branchId": "b2",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 1,
+          "slot": 1
+        }
+      ]
+    },
+    {
+      "id": "olymp-b2-g2-02",
+      "subject": "Олимпиада",
+      "group": "Демо-2",
+      "branchId": "b2",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 3,
+          "slot": 2
+        }
+      ]
+    },
+    {
+      "id": "olymp-b2-g2-03",
+      "subject": "Олимпиада",
+      "group": "Демо-3",
+      "branchId": "b2",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 3,
+          "slot": 1
+        }
+      ]
+    },
+    {
+      "id": "olymp-b2-g2-04",
+      "subject": "Олимпиада",
+      "group": "Демо-4",
+      "branchId": "b2",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 4,
+          "slot": 1
+        }
+      ]
+    },
+    {
+      "id": "olymp-b2-g2-05",
+      "subject": "Олимпиада",
+      "group": "Демо-5",
+      "branchId": "b2",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 5,
+          "slot": 2
+        }
+      ]
+    },
+    {
+      "id": "olymp-b2-g2-06",
+      "subject": "Олимпиада",
+      "group": "Демо-6",
+      "branchId": "b2",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 1,
+          "slot": 2
+        }
+      ]
+    },
+    {
+      "id": "olymp-b2-g2-07",
+      "subject": "Олимпиада",
+      "group": "Демо-7",
+      "branchId": "b2",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 2,
+          "slot": 2
+        }
+      ]
+    },
+    {
+      "id": "olymp-b2-g2-08",
+      "subject": "Олимпиада",
+      "group": "Демо-8",
+      "branchId": "b2",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 2,
+          "slot": 1
+        }
+      ]
+    },
+    {
+      "id": "olymp-b2-g2-09",
+      "subject": "Олимпиада",
+      "group": "Демо-9",
+      "branchId": "b2",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 4,
+          "slot": 2
+        }
+      ]
+    },
+    {
+      "id": "olymp-b3-g2-01",
+      "subject": "Олимпиада",
+      "group": "Демо-1",
+      "branchId": "b3",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 5,
+          "slot": 1
+        }
+      ]
+    },
+    {
+      "id": "olymp-b3-g2-02",
+      "subject": "Олимпиада",
+      "group": "Демо-2",
+      "branchId": "b3",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 2,
+          "slot": 2
+        }
+      ]
+    },
+    {
+      "id": "olymp-b3-g2-03",
+      "subject": "Олимпиада",
+      "group": "Демо-3",
+      "branchId": "b3",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 1,
+          "slot": 1
+        }
+      ]
+    },
+    {
+      "id": "olymp-b3-g2-04",
+      "subject": "Олимпиада",
+      "group": "Демо-4",
+      "branchId": "b3",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 4,
+          "slot": 2
+        }
+      ]
+    },
+    {
+      "id": "olymp-b3-g2-05",
+      "subject": "Олимпиада",
+      "group": "Демо-5",
+      "branchId": "b3",
+      "grade": 2,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 3,
+          "slot": 1
+        }
+      ]
+    },
+    {
+      "id": "olymp-b1-g1-01",
+      "subject": "Олимпиада",
+      "group": "Демо-1",
+      "branchId": "b1",
+      "grade": 1,
+      "type": "olympiad",
+      "sessions": [
+        {
+          "day": 2,
+          "slot": 2
+        }
+      ]
     }
   ],
   "olympiadOffers": {
-    "00003": [
-      {
-        "day": 1,
-        "slot": 1
-      }
-    ],
-    "00004": [
-      {
-        "day": 1,
-        "slot": 1
-      }
-    ],
-    "00005": [
-      {
-        "day": 1,
-        "slot": 2
-      }
-    ],
-    "00006": [
-      {
-        "day": 3,
-        "slot": 2
-      }
-    ],
-    "00007": [
-      {
-        "day": 3,
-        "slot": 1
-      }
-    ],
-    "00008": [
-      {
-        "day": 2,
-        "slot": 1
-      }
-    ],
-    "00009": [
-      {
-        "day": 3,
-        "slot": 2
-      }
-    ],
-    "00010": [
-      {
-        "day": 3,
-        "slot": 2
-      }
-    ],
-    "00011": [
-      {
-        "day": 2,
-        "slot": 2
-      }
-    ],
-    "00012": [
-      {
-        "day": 4,
-        "slot": 2
-      }
-    ],
-    "00013": [
-      {
-        "day": 4,
-        "slot": 1
-      }
-    ],
-    "00014": [
-      {
-        "day": 2,
-        "slot": 1
-      }
-    ],
-    "00015": [
-      {
-        "day": 1,
-        "slot": 2
-      }
-    ],
-    "00016": [
-      {
-        "day": 5,
-        "slot": 1
-      }
-    ],
-    "00017": [
-      {
-        "day": 1,
-        "slot": 2
-      }
-    ],
-    "00018": [
-      {
-        "day": 5,
-        "slot": 1
-      }
-    ],
-    "00019": [
-      {
-        "day": 5,
-        "slot": 2
-      }
-    ],
-    "00020": [
-      {
-        "day": 5,
-        "slot": 2
-      }
-    ],
-    "00021": [
-      {
-        "day": 2,
-        "slot": 1
-      }
-    ],
-    "00022": [
-      {
-        "day": 1,
-        "slot": 1
-      }
-    ],
-    "00023": [
-      {
-        "day": 1,
-        "slot": 1
-      }
-    ],
-    "00024": [
-      {
-        "day": 3,
-        "slot": 2
-      }
-    ],
-    "00025": [
-      {
-        "day": 3,
-        "slot": 2
-      }
-    ],
-    "00026": [
-      {
-        "day": 3,
-        "slot": 1
-      }
-    ],
-    "00027": [
-      {
-        "day": 4,
-        "slot": 1
-      }
-    ],
-    "00028": [
-      {
-        "day": 4,
-        "slot": 1
-      }
-    ],
-    "00029": [
-      {
-        "day": 5,
-        "slot": 2
-      }
-    ],
-    "00030": [
-      {
-        "day": 1,
-        "slot": 2
-      }
-    ],
-    "00031": [
-      {
-        "day": 3,
-        "slot": 2
-      }
-    ],
-    "00032": [
-      {
-        "day": 2,
-        "slot": 2
-      }
-    ],
-    "00033": [
-      {
-        "day": 4,
-        "slot": 1
-      }
-    ],
-    "00034": [
-      {
-        "day": 2,
-        "slot": 1
-      }
-    ],
-    "00035": [
-      {
-        "day": 1,
-        "slot": 2
-      }
-    ],
-    "00036": [
-      {
-        "day": 4,
-        "slot": 2
-      }
-    ],
-    "00037": [
-      {
-        "day": 5,
-        "slot": 2
-      }
-    ],
-    "00038": [
-      {
-        "day": 1,
-        "slot": 1
-      }
-    ],
-    "00039": [
-      {
-        "day": 4,
-        "slot": 1
-      }
-    ],
-    "00040": [
-      {
-        "day": 2,
-        "slot": 1
-      }
-    ],
-    "00041": [
-      {
-        "day": 3,
-        "slot": 2
-      }
-    ],
-    "00042": [
-      {
-        "day": 1,
-        "slot": 2
-      }
-    ],
-    "00043": [
-      {
-        "day": 4,
-        "slot": 1
-      }
-    ],
-    "00044": [
-      {
-        "day": 4,
-        "slot": 2
-      }
-    ],
-    "00045": [
-      {
-        "day": 5,
-        "slot": 1
-      }
-    ],
-    "00046": [
-      {
-        "day": 2,
-        "slot": 2
-      }
-    ],
-    "00047": [
-      {
-        "day": 1,
-        "slot": 1
-      }
-    ],
-    "00048": [
-      {
-        "day": 4,
-        "slot": 2
-      }
-    ],
-    "00049": [
-      {
-        "day": 3,
-        "slot": 1
-      }
-    ],
-    "demo-b1-p1": [
-      {
-        "day": 2,
-        "slot": 2
-      }
-    ]
+    "00003": "olymp-b1-g2-01",
+    "00004": "olymp-b1-g2-01",
+    "00005": "olymp-b1-g2-02",
+    "00006": "olymp-b1-g2-03",
+    "00007": "olymp-b1-g2-04",
+    "00008": "olymp-b1-g2-05",
+    "00009": "olymp-b1-g2-03",
+    "00010": "olymp-b1-g2-03",
+    "00011": "olymp-b1-g2-06",
+    "00012": "olymp-b1-g2-07",
+    "00013": "olymp-b1-g2-08",
+    "00014": "olymp-b1-g2-05",
+    "00015": "olymp-b1-g2-02",
+    "00016": "olymp-b1-g2-09",
+    "00017": "olymp-b1-g2-02",
+    "00018": "olymp-b1-g2-09",
+    "00019": "olymp-b1-g2-10",
+    "00020": "olymp-b1-g2-10",
+    "00021": "olymp-b1-g2-05",
+    "00022": "olymp-b1-g2-01",
+    "00023": "olymp-b2-g2-01",
+    "00024": "olymp-b2-g2-02",
+    "00025": "olymp-b2-g2-02",
+    "00026": "olymp-b2-g2-03",
+    "00027": "olymp-b2-g2-04",
+    "00028": "olymp-b2-g2-04",
+    "00029": "olymp-b2-g2-05",
+    "00030": "olymp-b2-g2-06",
+    "00031": "olymp-b2-g2-02",
+    "00032": "olymp-b2-g2-07",
+    "00033": "olymp-b2-g2-04",
+    "00034": "olymp-b2-g2-08",
+    "00035": "olymp-b2-g2-06",
+    "00036": "olymp-b2-g2-09",
+    "00037": "olymp-b2-g2-05",
+    "00038": "olymp-b2-g2-01",
+    "00039": "olymp-b2-g2-04",
+    "00040": "olymp-b2-g2-08",
+    "00041": "olymp-b2-g2-02",
+    "00042": "olymp-b2-g2-06",
+    "00043": "olymp-b2-g2-04",
+    "00044": "olymp-b2-g2-09",
+    "00045": "olymp-b3-g2-01",
+    "00046": "olymp-b3-g2-02",
+    "00047": "olymp-b3-g2-03",
+    "00048": "olymp-b3-g2-04",
+    "00049": "olymp-b3-g2-05",
+    "demo-b1-p1": "olymp-b1-g1-01"
   },
   "source": {
     "description": "Шаблоны 2-й параллели — исходный Excel; филиальная привязка и прочие параллели — синтетические тестовые данные"
