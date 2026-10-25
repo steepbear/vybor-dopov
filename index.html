@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f8fc">
+  <meta name="description" content="Демонстрационный сервис ручного подбора дополнительных занятий">
+  <title>Выбор допов — интерактивный прототип</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="data.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-content">
+      <a href="#" class="brand" id="brandLink" aria-label="На главную">
+        <span class="logo">✦</span>
+        <span class="brand-name">Выбор <strong>допов</strong><small>Школьные занятия без накладок</small></span>
+      </a>
+      <div class="nav" role="tablist" aria-label="Режим работы">
+        <button class="tab active" id="tabStudent" role="tab" aria-selected="true">Для ученика</button>
+        <button class="tab" id="tabAdmin" role="tab" aria-selected="false">Для методолога</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <div class="demo-notice"><span class="dot"></span><strong>Демонстрационная версия</strong><span>Ученики вымышленные. Расписания по филиалам и параллелям — учебные примеры, не реальные назначения. Данные хранятся только в этом браузере.</span></div>
+    <section id="studentView">
+      <div class="page-intro">
+        <div><div class="overline">Личный кабинет ученика</div><h1>Собери своё расписание</h1><p>Выбирай интересные занятия и конкретные группы. Мы проследим, чтобы они не пересекались по времени.</p></div>
+      </div>
+      <div class="student-selector card">
+        <div class="field-wrap"><label for="studentBranch">Филиал</label><select id="studentBranch"></select></div>
+        <div class="field-wrap"><label for="studentGrade">Параллель</label><select id="studentGrade"></select></div>
+        <div class="field-wrap"><label for="studentSelect">Выбранный ученик</label><select id="studentSelect"></select></div>
+        <div id="studentMeta" class="student-meta"></div>
+        <div id="studentStatus" class="status-label"></div>
+      </div>
+      <div class="workspace">
+        <div class="main-column">
+          <section class="card olympiad-card">
+            <div class="section-heading"><div class="section-icon gold">★</div><div><h2>Олимпиада</h2><p>Необязательное занятие — только для тех, кому предложено</p></div></div>
+            <div id="olympiadBox"></div>
+          </section>
+          <section class="card courses-card">
+            <div class="section-heading"><div class="section-icon blue">▦</div><div><h2>Каталог занятий</h2><p>Показаны только группы филиала и параллели ученика. Серые группы пересекаются с уже выбранным расписанием</p></div></div>
+            <div class="catalog-toolbar"><label class="search-field"><span aria-hidden="true">⌕</span><input id="searchInput" placeholder="Найти занятие…" autocomplete="off" aria-label="Поиск занятий"></label><span class="result-count" id="resultCount"></span></div>
+            <div id="courseList" class="course-list"></div>
+            <div id="catalogEmpty" class="empty-message" hidden>По вашему запросу занятий не найдено.</div>
+          </section>
+          <details class="card assistant-card" id="helperDetails">
+            <summary><span class="section-icon purple">✧</span><span><strong>Помощник по подбору</strong><small>По желанию — ищет максимум совместимых занятий по порядку предпочтений</small></span><span class="chevron">⌄</span></summary>
+            <div class="helper-inner">
+              <p>Сначала добавь направления в список желаний. При подборе уже выбранные группы сохраняются, а остальные подбираются автоматически. Результат можно применить или просто посмотреть.</p>
+              <div class="wish-input"><select id="wishSubject" aria-label="Выбрать желаемое направление"></select><button id="addWish" class="btn outline" type="button">Добавить</button></div>
+              <div id="wishList" class="wish-list"></div>
+              <div class="helper-actions"><button id="runHelper" type="button" class="btn primary">Найти сочетание</button><button id="clearWishes" class="btn ghost" type="button">Очистить желания</button></div>
+              <div id="helperResult" aria-live="polite"></div>
+            </div>
+          </details>
+        </div>
+        <aside class="aside-column">
+          <div class="card sticky-summary">
+            <div class="aside-head"><div><div class="overline">Текущий выбор</div><h2>Моё расписание</h2></div><span class="count-badge" id="selectedCount">0</span></div>
+            <div id="chosenList" class="chosen-list"></div>
+            <div class="schedule-wrap"><table class="schedule-table"><thead><tr><th>Время</th><th>ПН</th><th>ВТ</th><th>СР</th><th>ЧТ</th><th>ПТ</th></tr></thead><tbody id="scheduleBody"></tbody></table></div>
+            <p class="schedule-caption">В таблице показаны все занятия выбранных групп и олимпиады.</p>
+            <button id="confirmSelection" class="btn primary full" type="button">Подтвердить выбор</button>
+            <p class="confirmation-hint" id="confirmationHint">После подтверждения изменить расписание сможет только методолог.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="adminView" hidden>
+      <div class="page-intro"><div><div class="overline">Панель методолога · демонстрация</div><h1>Контроль выбора занятий</h1><p>Подтверждённые расписания и ограничения групп. В тестовой версии это локальные данные, без настоящих прав доступа.</p></div></div>
+      <div class="card scope-controls">
+        <div class="field-wrap"><label for="adminBranch">Филиал методолога</label><select id="adminBranch"></select></div>
+        <div class="field-wrap"><label for="adminGrade">Параллель</label><select id="adminGrade"></select></div>
+        <span class="microcopy">Отчёты и группы ниже относятся только к выбранному филиалу и параллели.</span>
+      </div>
+      <div class="metrics" id="metrics"></div>
+      <section class="card admin-section">
+        <div class="section-heading"><div class="section-icon blue">≡</div><div><h2>Ученики без подтверждённого выбора</h2><p>В отчёт попадают ученики, которые пока не подтвердили расписание</p></div></div>
+        <div class="catalog-toolbar"><label class="filter-field">Класс <select id="reportClass"></select></label><span class="microcopy" id="reportScope"></span><span id="unconfirmedCount" class="result-count"></span></div>
+        <div class="table-scroll"><table class="data-table"><thead><tr><th>Ученик</th><th>Класс</th><th>Филиал</th><th>Статус</th></tr></thead><tbody id="unconfirmedBody"></tbody></table></div>
+      </section>
+      <section class="card admin-section">
+        <div class="section-heading"><div class="section-icon purple">▤</div><div><h2>Сводка подтверждённых записей</h2><p>Подсчёт только по подтверждённым выборам; одна группа считается один раз на ученика</p></div></div>
+        <div class="report-switch" role="tablist"><button class="report-tab active" data-report="subjects">По предметам</button><button class="report-tab" data-report="groups">По группам</button><button class="report-tab" data-report="classes">По классам</button></div>
+        <div class="table-scroll"><table class="data-table"><thead id="summaryHead"></thead><tbody id="summaryBody"></tbody></table></div>
+      </section>
+      <section class="card admin-section">
+        <div class="section-heading"><div class="section-icon green">✓</div><div><h2>Подтверждённые расписания</h2><p>Методолог может открыть подтверждённый выбор для изменений</p></div></div>
+        <div class="table-scroll"><table class="data-table"><thead><tr><th>Ученик</th><th>Класс</th><th>Выбрано</th><th>Действие</th></tr></thead><tbody id="confirmedBody"></tbody></table></div>
+      </section>
+      <section class="card admin-section">
+        <div class="section-heading"><div class="section-icon gold">⚙</div><div><h2>Группы параллели</h2><p>Группы и расписания строго принадлежат выбранным филиалу и параллели; название направления может повторяться в других параллелях.</p></div></div>
+        <div class="table-scroll"><table class="data-table"><thead><tr><th>Направление</th><th>Группа</th><th>Занятия</th></tr></thead><tbody id="adminGroupsBody"></tbody></table></div>
+        <p class="microcopy">В этой версии список только для просмотра. Редактирование расписаний и создание групп через панель методолога запланировано отдельно.</p>
+      </section>
+      <div class="admin-footer"><button id="resetDemo" class="btn danger-outline" type="button">Сбросить тестовые результаты</button></div>
+    </section>
+    <footer class="site-footer">Выбор допов · прототип на GitHub Pages · без серверной части</footer>
+  </main>
+  <div id="toast" role="status" aria-live="polite" class="toast" hidden></div>
+</body>
+</html>
