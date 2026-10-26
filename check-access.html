@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Выбор допов — проверка входа и RLS</title>
+  <style>
+    :root{color-scheme:light;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;color:#20304c;background:#f4f6fb}
+    *{box-sizing:border-box}body{margin:0}.wrap{max-width:780px;margin:38px auto;padding:0 18px 48px}
+    h1{font-size:clamp(1.55rem,3vw,2.15rem);margin:0 0 6px}h2{font-size:1.05rem;margin:0 0 14px}.muted{color:#62718a;line-height:1.55}
+    .eyebrow{color:#315db1;font-size:.77rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+    .card{background:white;border:1px solid #e1e6f0;box-shadow:0 5px 18px #1b3b6a08;border-radius:16px;padding:23px;margin:20px 0}
+    label{font-size:.86rem;font-weight:650;display:block;margin-bottom:5px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:17px}
+    input{width:100%;border:1px solid #bdc8da;background:#fff;border-radius:9px;font-size:1rem;padding:11px 12px;color:#162740}
+    input:focus{outline:2px solid #417ce077;border-color:#3572c5}button{border:0;border-radius:10px;padding:12px 18px;cursor:pointer;font-weight:730;font-size:.91rem}
+    .primary{background:#2b63bf;color:white}.secondary{background:#e9effa;color:#2852a0}button:disabled{opacity:.5;cursor:wait}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:17px}.info{font-size:.82rem;color:#60728a;line-height:1.5}
+    .error{border:1px solid #e8a3a3;background:#fff1f1;color:#a52525;padding:13px;border-radius:9px}
+    .ok{border:1px solid #9ed6bc;background:#eaf9f0;color:#196842;padding:13px;border-radius:9px}
+    .line{padding:11px 0;border-bottom:1px solid #e7edf5;display:flex;justify-content:space-between;gap:14px}
+    .line span:first-child{color:#5b6b85}.line strong{text-align:right;overflow-wrap:anywhere}
+    .note{padding:11px 14px;background:#edf2fa;border-radius:9px;font-size:.9rem;line-height:1.5}code{font-size:.9em}
+    [hidden]{display:none!important}@media(max-width:580px){.grid{grid-template-columns:1fr}.wrap{margin:20px auto}.card{padding:17px}.line{display:block}.line strong{display:block;text-align:left;margin-top:4px}}
+  </style>
+</head>
+<body><main class="wrap">
+  <p class="eyebrow">Выбор допов · проверка подключения</p>
+  <h1>Вход методолога в Supabase</h1>
+  <p class="muted">Отдельная страница для проверки авторизации и RLS. Она <strong>только читает</strong> базу, ничего не изменяет и не заменяет основное приложение V5.</p>
+  <section class="card">
+    <h2>1. Параметры проекта</h2>
+    <div class="grid">
+      <div><label for="url">Project URL</label><input id="url" required autocomplete="off" placeholder="https://xxxx.supabase.co" spellcheck="false"></div>
+      <div><label for="key">Publishable key</label><input id="key" required autocomplete="off" placeholder="sb_publishable_..." spellcheck="false"></div>
+    </div>
+    <p class="info">Supabase → Connect (URL и publishable key), либо Settings → API Keys. <strong>Никогда не вставляй сюда Secret key, service_role или пароль самой базы.</strong></p>
+  </section>
+  <section class="card">
+    <h2>2. Вход методолога</h2>
+    <form id="login">
+      <div class="grid">
+        <div><label for="email">Email методолога</label><input id="email" type="email" required autocomplete="username" placeholder="name@example.com"></div>
+        <div><label for="password">Пароль учётной записи методолога</label><input id="password" type="password" required autocomplete="current-password" placeholder="Пароль из Authentication → Users"></div>
+      </div>
+      <div class="actions"><button id="signin" class="primary" type="submit">Войти и проверить доступ</button><button id="signout" class="secondary" type="button" hidden>Выйти</button></div>
+    </form>
+    <p class="info">Пароль вводится прямо в браузере и отправляется только Supabase Auth по HTTPS; эта страница не сохраняет его или токен входа в localStorage.</p>
+  </section>
+  <div id="message" role="status" aria-live="polite" hidden></div>
+  <section id="results" class="card" hidden>
+    <h2>3. Данные, доступные этому пользователю</h2>
+    <div id="resultLines"></div>
+    <p id="resultNote" class="note"></p>
+  </section>
+</main>
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const el=id=>document.getElementById(id);
+let client=null;
+const show=(message,isError=false)=>{const n=el('message');n.hidden=false;n.className=isError?'error':'ok';n.textContent=message};
+const line=(label,value)=>{const row=document.createElement('div');row.className='line';const a=document.createElement('span');const b=document.createElement('strong');a.textContent=label;b.textContent=String(value);row.append(a,b);el('resultLines').append(row)};
+const select=async(table,columns='*',options={})=>{
+  let q=client.from(table).select(columns,options);
+  return await q;
+};
+async function reset(){if(client){await client.auth.signOut({scope:'local'}).catch(()=>{});}client=null;el('signin').disabled=false;el('signout').hidden=true;el('results').hidden=true;el('password').value='';}
+el('signout').addEventListener('click',async()=>{await reset();show('Вы вышли из тестового кабинета.');});
+el('login').addEventListener('submit',async event=>{
+  event.preventDefault();el('signin').disabled=true;el('results').hidden=true;el('message').hidden=true;
+  try{
+    const url=el('url').value.trim().replace(/\/+$/,'');
+    const key=el('key').value.trim();
+    if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)) throw Error('Укажи адрес проекта вида https://xxxxx.supabase.co');
+    if(!key.startsWith('sb_publishable_')) throw Error('Нужен только Publishable key (начинается с sb_publishable_).');
+    if(client){await client.auth.signOut({scope:'local'}).catch(()=>{});}
+    client=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+    const auth=await client.auth.signInWithPassword({email:el('email').value.trim(),password:el('password').value});
+    el('password').value='';
+    if(auth.error) throw Error('Ошибка входа: '+auth.error.message);
+    if(!auth.data.user) throw Error('Не удалось получить сведения о пользователе.');
+    const uid=auth.data.user.id;
+    const p=await client.from('profiles').select('user_id,role,branch_id').eq('user_id',uid).maybeSingle();
+    if(p.error) throw Error('Не удалось прочитать profiles: '+p.error.message);
+    if(!p.data) throw Error('Вход выполнен, но профиль пользователя не виден. Проверь привязку к филиалу и RLS.');
+    const b=await client.from('branches').select('name,id').eq('id',p.data.branch_id).maybeSingle();
+    if(b.error) throw Error('Не удалось прочитать branches: '+b.error.message);
+    const students=await select('students','id',{count:'exact',head:true});
+    if(students.error) throw Error('Не удалось прочитать students: '+students.error.message);
+    const groups=await select('study_groups','id',{count:'exact',head:true});
+    if(groups.error) throw Error('Не удалось прочитать study_groups: '+groups.error.message);
+    el('resultLines').replaceChildren();
+    line('Роль',p.data.role);
+    line('Филиал',b.data?.name||'Филиал не найден');
+    line('Доступных учеников',students.count??'—');
+    line('Доступных групп',groups.count??'—');
+    el('results').hidden=false;
+    el('resultNote').textContent=(p.data.role==='methodologist'&&b.data)
+      ? 'Успех: вход, чтение собственного профиля и данных филиала работают. Нулевое число учеников или групп нормально для пустой базы. Для полной проверки изоляции понадобится второй филиал и отдельная тестовая учётная запись.'
+      : 'Вход выполнен, но роль или филиал не соответствуют ожидаемому методологу — проверь назначение в profiles.';
+    el('signout').hidden=false;show('Вход выполнен, чтение доступных данных прошло успешно.');
+  }catch(err){show(err?.message||'Ошибка проверки',true);el('signin').disabled=false;}
+});
+</script>
+</body></html>
