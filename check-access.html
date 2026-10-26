@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <title>Выбор допов — проверка входа и RLS</title>
+  <title>Выбор допов — проверка изоляции филиалов</title>
   <style>
     :root{color-scheme:light;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;color:#20304c;background:#f4f6fb}
     *{box-sizing:border-box}body{margin:0}.wrap{max-width:780px;margin:38px auto;padding:0 18px 48px}
@@ -26,7 +26,7 @@
 </head>
 <body><main class="wrap">
   <p class="eyebrow">Выбор допов · проверка подключения</p>
-  <h1>Вход методолога в Supabase</h1>
+  <h1>Проверка доступа методолога к филиалам</h1>
   <p class="muted">Отдельная страница для проверки авторизации и RLS. Она <strong>только читает</strong> базу, ничего не изменяет и не заменяет основное приложение V5.</p>
   <section class="card">
     <h2>1. Параметры проекта</h2>
@@ -52,6 +52,7 @@
     <h2>3. Данные, доступные этому пользователю</h2>
     <div id="resultLines"></div>
     <p id="resultNote" class="note"></p>
+    <div id="isolationResults" hidden><h2 style="margin-top:24px">4. Проверка изоляции филиалов</h2><div id="isolationLines"></div><p class="info">Проверяются точные идентификаторы тестовых записей. Другие существующие данные в филиале на результат не влияют.</p></div>
   </section>
 </main>
 <script type="module">
@@ -64,10 +65,52 @@ const select=async(table,columns='*',options={})=>{
   let q=client.from(table).select(columns,options);
   return await q;
 };
-async function reset(){if(client){await client.auth.signOut({scope:'local'}).catch(()=>{});}client=null;el('signin').disabled=false;el('signout').hidden=true;el('results').hidden=true;el('password').value='';}
+
+const fixtures={
+  studentOwn:'7a8f5bb9-9c3d-49bd-8a6f-000000001001',studentForeign:'7a8f5bb9-9c3d-49bd-8a6f-000000001002',
+  groupOwnRegular:'7a8f5bb9-9c3d-49bd-8a6f-000000002001',groupOwnOlympiad:'7a8f5bb9-9c3d-49bd-8a6f-000000002002',
+  groupForeignRegular:'7a8f5bb9-9c3d-49bd-8a6f-000000002003',groupForeignOlympiad:'7a8f5bb9-9c3d-49bd-8a6f-000000002004',
+  branchForeign:'7a8f5bb9-9c3d-49bd-8a6f-000000004001'
+};
+async function testIsolation(){
+  const tests=[
+    ['Свой тестовый ученик виден','students','id',fixtures.studentOwn,1],
+    ['Чужой тестовый ученик скрыт','students','id',fixtures.studentForeign,0],
+    ['Своя обычная группа видна','study_groups','id',fixtures.groupOwnRegular,1],
+    ['Своя олимпиадная группа видна','study_groups','id',fixtures.groupOwnOlympiad,1],
+    ['Чужая обычная группа скрыта','study_groups','id',fixtures.groupForeignRegular,0],
+    ['Чужая олимпиадная группа скрыта','study_groups','id',fixtures.groupForeignOlympiad,0],
+    ['Своё расписание группы видно','group_sessions','group_id',fixtures.groupOwnRegular,1],
+    ['Чужое расписание скрыто','group_sessions','group_id',fixtures.groupForeignRegular,0],
+    ['Свой выбор допа виден','regular_selections','student_id',fixtures.studentOwn,1],
+    ['Чужой выбор допа скрыт','regular_selections','student_id',fixtures.studentForeign,0],
+    ['Своё предложение олимпиады видно','olympiad_offers','student_id',fixtures.studentOwn,1],
+    ['Чужое предложение олимпиады скрыто','olympiad_offers','student_id',fixtures.studentForeign,0],
+    ['Чужой филиал скрыт','branches','id',fixtures.branchForeign,0]
+  ];
+  const box=el('isolationResults');const list=el('isolationLines');list.replaceChildren();box.hidden=false;
+  let passed=0;
+  for(const [label,table,field,id,expected] of tests){
+    const {count,error}=await client.from(table).select('*',{head:true,count:'exact'}).eq(field,id);
+    if(error) throw Error('Ошибка проверки '+table+': '+error.message);
+    const ok=count===expected;
+    if(ok) passed++;
+    const row=document.createElement('div');row.className='line';
+    const name=document.createElement('span');name.textContent=label;
+    const status=document.createElement('strong');status.style.color=ok?'#196842':'#a52525';
+    status.textContent=ok?'✓ ПРОЙДЕНО':'✕ НЕ ПРОЙДЕНО (получено '+count+', ожидалось '+expected+')';
+    row.append(name,status);list.append(row);
+  }
+  const summary=document.createElement('p');summary.className=passed===tests.length?'ok':'error';
+  summary.textContent=passed+' из '+tests.length+' проверок пройдено.'+(passed===tests.length?' Доступы по тестовым строкам корректны.':' Проверь SQL с тестовыми данными и политики.');
+  list.prepend(summary);
+  return passed===tests.length;
+}
+
+async function reset(){if(client){await client.auth.signOut({scope:'local'}).catch(()=>{});}client=null;el('signin').disabled=false;el('signout').hidden=true;el('results').hidden=true;el('isolationResults').hidden=true;el('password').value='';}
 el('signout').addEventListener('click',async()=>{await reset();show('Вы вышли из тестового кабинета.');});
 el('login').addEventListener('submit',async event=>{
-  event.preventDefault();el('signin').disabled=true;el('results').hidden=true;el('message').hidden=true;
+  event.preventDefault();el('signin').disabled=true;el('results').hidden=true;el('isolationResults').hidden=true;el('message').hidden=true;
   try{
     const url=el('url').value.trim().replace(/\/+$/,'');
     const key=el('key').value.trim();
@@ -96,9 +139,11 @@ el('login').addEventListener('submit',async event=>{
     line('Доступных групп',groups.count??'—');
     el('results').hidden=false;
     el('resultNote').textContent=(p.data.role==='methodologist'&&b.data)
-      ? 'Успех: вход, чтение собственного профиля и данных филиала работают. Нулевое число учеников или групп нормально для пустой базы. Для полной проверки изоляции понадобится второй филиал и отдельная тестовая учётная запись.'
+      ? 'Вход и чтение профиля работают. Ниже отдельные проверки тестовых записей в своём и чужом филиале.'
       : 'Вход выполнен, но роль или филиал не соответствуют ожидаемому методологу — проверь назначение в profiles.';
-    el('signout').hidden=false;show('Вход выполнен, чтение доступных данных прошло успешно.');
+    el('signout').hidden=false;
+    const passed=await testIsolation();
+    show(passed?'Вход выполнен. Все проверки изоляции пройдены.':'Вход выполнен, но не все проверки изоляции пройдены.',!passed);
   }catch(err){show(err?.message||'Ошибка проверки',true);el('signin').disabled=false;}
 });
 </script>
