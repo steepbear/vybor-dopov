@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f6f8fc">
   <meta name="description" content="Демонстрационный сервис ручного подбора дополнительных занятий">
-  <title>Выбор допов — версия V3</title>
+  <title>Выбор допов — версия V5</title>
   <link rel="stylesheet" href="style.css">
   <script src="data.js" defer></script>
   <script src="app.js" defer></script>
@@ -37,10 +37,22 @@
         <div id="studentMeta" class="student-meta"></div>
         <div id="studentStatus" class="status-label"></div>
       </div>
-      <div class="workspace">
+      <div class="student-layout">
+        <section aria-label="Моё расписание" class="schedule-first">
+          <div class="card schedule-dashboard">
+            <div class="aside-head"><div><div class="overline">Текущий выбор</div><h2>Моё расписание</h2></div><span class="count-badge" id="selectedCount">0</span></div>
+            <div id="chosenList" class="chosen-list"></div>
+            <div class="schedule-wrap"><table class="schedule-table"><thead><tr><th>Время</th><th>ПН</th><th>ВТ</th><th>СР</th><th>ЧТ</th><th>ПТ</th></tr></thead><tbody id="scheduleBody"></tbody></table></div>
+            <p class="schedule-caption">В таблице показаны все занятия выбранных групп и олимпиады.</p>
+            <button id="confirmSelection" class="btn primary full" type="button">Подтвердить выбор</button>
+            <p class="confirmation-hint" id="confirmationHint">После подтверждения изменить расписание сможет только методолог.</p>
+          </div>
+
+        </section>
+        <div class="workspace">
         <div class="main-column">
           <section class="card olympiad-card">
-            <div class="section-heading"><div class="section-icon gold">★</div><div><h2>Олимпиада</h2><p>Необязательное занятие — только для тех, кому предложено</p></div></div>
+            <div class="section-heading"><div class="section-icon gold">★</div><div><h2>Мои олимпиады</h2><p>Можно принять несколько предложений, если они не пересекаются по времени</p></div></div>
             <div id="olympiadBox"></div>
           </section>
           <section class="card courses-card">
@@ -60,16 +72,7 @@
             </div>
           </details>
         </div>
-        <aside class="aside-column">
-          <div class="card sticky-summary">
-            <div class="aside-head"><div><div class="overline">Текущий выбор</div><h2>Моё расписание</h2></div><span class="count-badge" id="selectedCount">0</span></div>
-            <div id="chosenList" class="chosen-list"></div>
-            <div class="schedule-wrap"><table class="schedule-table"><thead><tr><th>Время</th><th>ПН</th><th>ВТ</th><th>СР</th><th>ЧТ</th><th>ПТ</th></tr></thead><tbody id="scheduleBody"></tbody></table></div>
-            <p class="schedule-caption">В таблице показаны все занятия выбранных групп и олимпиады.</p>
-            <button id="confirmSelection" class="btn primary full" type="button">Подтвердить выбор</button>
-            <p class="confirmation-hint" id="confirmationHint">После подтверждения изменить расписание сможет только методолог.</p>
-          </div>
-        </aside>
+        </div>
       </div>
     </section>
 
@@ -146,10 +149,10 @@
             <div class="offer-toolbar"><label class="checkbox-row"><input type="checkbox" id="selectAllOlympiad"> Выбрать показанных</label><input id="olympiadStudentSearch" type="search" placeholder="Поиск ученика или класса" aria-label="Поиск ученика"></div>
             <div id="olympiadStudentPicker" class="student-checkbox-grid"></div>
             <p id="olympiadFormError" class="form-error" role="alert" hidden></p>
-            <div class="form-actions"><button type="submit" class="btn primary" id="assignOlympiadButton">Назначить предложения</button><button type="button" id="clearOlympiadForm" class="btn ghost">Очистить форму</button></div>
+            <div class="form-actions"><button type="submit" class="btn primary" id="assignOlympiadButton">Добавить предложения</button><button type="button" id="clearOlympiadForm" class="btn ghost">Очистить форму</button></div>
           </form>
         </section>
-        <section class="card admin-section"><div class="section-heading"><div class="section-icon green">✓</div><div><h2>Назначенные предложения</h2><p>«Предложено» ещё не означает согласие. Ученик отдельно принимает олимпиаду при выборе допов.</p></div></div>
+        <section class="card admin-section"><div class="section-heading"><div class="section-icon green">✓</div><div><h2>Назначенные предложения</h2><p>Одному ученику можно предложить несколько разных олимпиад. Каждая принимается отдельно.</p></div></div>
           <div class="table-scroll"><table class="data-table"><thead><tr><th>Ученик</th><th>Класс</th><th>Олимпиада · группа</th><th>Расписание</th><th>Статус</th><th>Действие</th></tr></thead><tbody id="olympiadAssignmentsBody"></tbody></table></div>
         </section>
       </div>

@@ -4,9 +4,9 @@
   if (!window.DOP_DATA) { document.body.textContent = 'Не найден файл data.js'; return; }
   const BASE = JSON.parse(JSON.stringify(window.DOP_DATA));
   const DATA = JSON.parse(JSON.stringify(BASE));
-  const KEY = 'vybor_dopov_demo_v4';
+  const KEY = 'vybor_dopov_demo_v5';
   const saved = (() => {
-    try { return JSON.parse(localStorage.getItem(KEY)) || JSON.parse(localStorage.getItem('vybor_dopov_demo_v3')) || JSON.parse(localStorage.getItem('vybor_dopov_demo_v2')) || {}; }
+    try { return JSON.parse(localStorage.getItem(KEY)) || JSON.parse(localStorage.getItem('vybor_dopov_demo_v4')) || JSON.parse(localStorage.getItem('vybor_dopov_demo_v3')) || JSON.parse(localStorage.getItem('vybor_dopov_demo_v2')) || {}; }
     catch { return {}; }
   })();
   const dayShort = ['','ПН','ВТ','СР','ЧТ','ПТ'];
@@ -37,8 +37,9 @@
   // Локальные данные V3 хранили время олимпиады прямо у ученика.
   // При переходе на V4 связываем предложение с настоящей группой в каталоге.
   function migrateLegacyOffers(){
+    // Старые версии сохраняли ровно одну олимпиаду (ID или массив слотов).
     for(const [sid,value] of Object.entries(state.offerOverrides)){
-      if(!Array.isArray(value) || !value.length)continue;
+      if(!Array.isArray(value) || !value.length || !value.every(x=>x && typeof x==='object' && 'day' in x))continue;
       const stu=[...BASE.students,...state.addedStudents].find(s=>s.id===sid);
       if(!stu)continue;
       const norm=JSON.stringify([...value].sort((a,b)=>a.day-b.day||a.slot-b.slot));
@@ -50,24 +51,34 @@
       }
       state.offerOverrides[sid]=group.id;
     }
+    const legacyOffers={...BASE.olympiadOffers,...state.offerOverrides};
+    for(const [sid,rec] of Object.entries(state.records)){
+      if(!rec || Array.isArray(rec.olympiads))continue;
+      const old=legacyOffers[sid];
+      rec.olympiads=rec.olympiad && typeof old==='string'?[old]:[];
+    }
   }
   migrateLegacyOffers();
+  function normalizeIds(value){
+    return [...new Set((Array.isArray(value)?value:typeof value==='string'?[value]:[]).filter(x=>typeof x==='string'&&x.length))];
+  }
   function syncData(){
     DATA.students = [...BASE.students,...state.addedStudents];
     DATA.groups = [...BASE.groups,...Object.entries(state.groupOverrides).filter(([id])=>!BASE.groups.some(g=>g.id===id)).map(([,g])=>g)]
       .map(g=>Object.prototype.hasOwnProperty.call(state.groupOverrides,g.id)?state.groupOverrides[g.id]:g).filter(Boolean);
-    DATA.olympiadOffers={...BASE.olympiadOffers,...state.offerOverrides};
+    DATA.olympiadOffers={};
+    for(const [sid,value] of Object.entries({...BASE.olympiadOffers,...state.offerOverrides})) DATA.olympiadOffers[sid]=normalizeIds(value);
     for(const id of Object.keys(studentById))delete studentById[id];
     for(const id of Object.keys(groupById))delete groupById[id];
-    for(const s of DATA.students) studentById[s.id]=s;
-    for(const g of DATA.groups) groupById[g.id]=g;
+    for(const s of DATA.students)studentById[s.id]=s;
+    for(const g of DATA.groups)groupById[g.id]=g;
   }
   syncData();
   function persist(){
     try { localStorage.setItem(KEY,JSON.stringify({records:state.records,addedStudents:state.addedStudents,groupOverrides:state.groupOverrides,offerOverrides:state.offerOverrides})); }
     catch {notify('Не удалось сохранить в браузере. Проверьте режим приватности.',true);}
   }
-  function record(sid=state.studentId){ if(!state.records[sid])state.records[sid]={chosen:[],olympiad:false,confirmed:false};return state.records[sid]; }
+  function record(sid=state.studentId){ if(!state.records[sid])state.records[sid]={chosen:[],olympiads:[],confirmed:false}; if(!Array.isArray(state.records[sid].olympiads))state.records[sid].olympiads=[];return state.records[sid]; }
   function student(){return studentById[state.studentId];}
   function isLocked(){return !!record().confirmed;}
   function chosenGroups(rec=record(), sid=state.studentId){
@@ -75,8 +86,10 @@
     const stu=studentById[sid];
     return rec.chosen.map(id=>groupById[id]).filter(g=>g && g.branchId===stu.branchId && g.grade===stu.grade);
   }
-  function offer(sid=state.studentId){const id=DATA.olympiadOffers[sid];const g=groupById[id];return g && g.type==='olympiad' && allowedFor(g,sid)?g:null;}
-  function olympEnabled(rec=record(),sid=state.studentId){return Boolean(rec.olympiad && offer(sid));}
+  function offers(sid=state.studentId){return (DATA.olympiadOffers[sid]||[]).map(id=>groupById[id]).filter(g=>g && g.type==='olympiad' && allowedFor(g,sid));}
+  function acceptedOlympiads(rec=record(),sid=state.studentId){return offers(sid).filter(g=>rec.olympiads.includes(g.id));}
+  function olympEnabled(rec=record(),sid=state.studentId){return acceptedOlympiads(rec,sid).length>0;}
+
   function allowedFor(g,sid=state.studentId){
     const s=studentById[sid];
     return Boolean(s && g && g.branchId===s.branchId && g.grade===s.grade);
@@ -84,14 +97,14 @@
   function maskTaken(rec=record(),excludingGroupId=null,sid=state.studentId){
     let result=0;
     for(const g of chosenGroups(rec,sid)) if(g.id!==excludingGroupId) result|=scheduleMask(g.sessions);
-    if(olympEnabled(rec,sid))result|=scheduleMask(offer(sid).sessions);
+    for(const g of acceptedOlympiads(rec,sid)) if(g.id!==excludingGroupId)result|=scheduleMask(g.sessions);
     return result;
   }
   function conflict(g,rec=record(),excludingId=null,sid=state.studentId){
     const candidates=[];
     const mask=scheduleMask(g.sessions);
     for(const another of chosenGroups(rec,sid))if(another.id!==excludingId && another.id!==g.id && (mask & scheduleMask(another.sessions)))candidates.push(another.subject);
-    if(olympEnabled(rec,sid) && (mask & scheduleMask(offer(sid).sessions)))candidates.push('Олимпиада');
+    for(const o of acceptedOlympiads(rec,sid)) if(o.id!==g.id && o.id!==excludingId && (mask & scheduleMask(o.sessions)))candidates.push(o.subject);
     return uniq(candidates);
   }
   function updateState(){persist();state.suggestion=null;renderStudent();if(state.mode==='admin')renderAdmin();}
@@ -121,17 +134,14 @@
     renderOlympiad();renderCourses();renderChosen();renderWishes();
   }
   function renderOlympiad(){
-    const rec=record(),o=offer();
-    if(!o){$('olympiadBox').innerHTML='<div class="offer-empty">Этому ученику олимпиада не предложена. Выбирать её нельзя.</div>';return;}
-    $('olympiadBox').innerHTML=`<div class="olympiad-offer"><div><h3>${h(o.subject)} · группа ${h(o.group)}</h3><p>${rec.olympiad?'Выбрано — время учитывается в расписании':'Принимать предложение необязательно'}</p><div class="slot-chips">${o.sessions.map(s=>`<span class="slot-pill">${h(sessionText(s))}</span>`).join('')}</div></div><label class="toggle" title="Принять или отклонить предложение"><input id="olympiadToggle" type="checkbox" ${rec.olympiad?'checked':''} ${rec.confirmed?'disabled':''} aria-label="Выбрать олимпиаду"><span></span></label></div>`;
-    $('olympiadToggle').addEventListener('change',evt=>{
-      if(isLocked()){evt.target.checked=rec.olympiad;return;}
-      if(evt.target.checked){
-        const conflicts=chosenGroups().filter(g=>scheduleMask(g.sessions)&scheduleMask(o.sessions));
-        if(conflicts.length){evt.target.checked=false;notify('Олимпиада пересекается с: '+conflicts.map(g=>g.subject).join(', ')+'. Сначала убери конфликтующие группы.',true);return;}
-      }
-      rec.olympiad=evt.target.checked;updateState();
-    });
+    const rec=record(),olymps=offers();
+    if(!olymps.length){$('olympiadBox').innerHTML='<div class="offer-empty">Этому ученику олимпиады не предложены.</div>';return;}
+    $('olympiadBox').innerHTML='<div class="olympiad-list">'+olymps.map(o=>{
+      const checked=rec.olympiads.includes(o.id);
+      const conflicts=checked?[]:conflict(o,rec);
+      const disabled=rec.confirmed||conflicts.length>0;
+      return `<div class="olympiad-offer"><div><h3>${h(o.subject)} · группа ${h(o.group)}</h3><p>${checked?'✓ Принята':conflicts.length?'Пересечение с: '+h(conflicts.join(', ')):'Можно принять или пропустить'}</p><div class="slot-chips">${o.sessions.map(s=>`<span class="slot-pill">${h(sessionText(s))}</span>`).join('')}</div></div><label class="toggle" title="Принять или отклонить олимпиаду"><input type="checkbox" data-olympiad-toggle="${h(o.id)}" ${checked?'checked':''} ${disabled?'disabled':''} aria-label="Принять ${h(o.subject)}"><span></span></label></div>`;
+    }).join('')+'</div>';
   }
   function groupStatus(g){
     const rec=record();const current=chosenGroups().find(x=>x.subject===g.subject);
@@ -175,14 +185,14 @@
     updateState();notify(old?'Группа заменена':'Занятие добавлено',false,true);
   }
   function renderChosen(){
-    const rec=record(),gs=chosenGroups(),olym=olympEnabled(rec);
-    const selections=gs.length+(olym?1:0);
+    const rec=record(),gs=chosenGroups(),olymps=acceptedOlympiads(rec);
+    const selections=gs.length+olymps.length;
     $('selectedCount').textContent=String(selections);
-    const items=[...gs.map(g=>`<div class="chosen-item"><div><span class="name">${h(g.subject)}</span><span class="detail">Группа ${h(g.group)}</span></div><button class="remove-button" data-remove="${h(g.id)}" title="Убрать занятие" aria-label="Убрать ${h(g.subject)}" ${rec.confirmed?'disabled':''}>×</button></div>`),...(olym?[`<div class="chosen-item"><div><span class="name">${h(offer().subject)}</span><span class="detail">Олимпиада · группа ${h(offer().group)} · предложение принято</span></div><span style="color:#bd8a21;font-size:18px">★</span></div>`]:[])];
+    const items=[...gs.map(g=>`<div class="chosen-item"><div><span class="name">${h(g.subject)}</span><span class="detail">Группа ${h(g.group)}</span></div><button class="remove-button" data-remove="${h(g.id)}" title="Убрать занятие" aria-label="Убрать ${h(g.subject)}" ${rec.confirmed?'disabled':''}>×</button></div>`),...olymps.map(o=>`<div class="chosen-item"><div><span class="name">${h(o.subject)}</span><span class="detail">Олимпиада · группа ${h(o.group)} · предложение принято</span></div><span style="color:#bd8a21;font-size:18px">★</span></div>`)];
     $('chosenList').innerHTML=items.length?items.join(''):'<div class="empty-chosen">Здесь появятся выбранные занятия</div>';
     const cells={};
     for(const g of gs)for(const ses of g.sessions)cells[ses.day+'-'+ses.slot]={text:g.subject,kind:'taken'};
-    if(olym)for(const ses of offer().sessions)cells[ses.day+'-'+ses.slot]={text:offer().subject,kind:'olymp'};
+    for(const o of olymps)for(const ses of o.sessions)cells[ses.day+'-'+ses.slot]={text:o.subject,kind:'olymp'};
     $('scheduleBody').innerHTML=DATA.slots.map(sl=>`<tr><td><strong>${h(sl.from)}</strong><div>${h(sl.to)}</div></td>${[1,2,3,4,5].map(day=>{const c=cells[day+'-'+sl.id];return c?`<td class="${c.kind}" title="${h(c.text)}">${h(c.text)}</td>`:'<td>—</td>';}).join('')}</tr>`).join('');
     $('confirmSelection').disabled=rec.confirmed || selections===0;
     $('confirmSelection').textContent=rec.confirmed?'✓ Расписание подтверждено':'Подтвердить выбор';
@@ -222,7 +232,7 @@
     for(const opt of states.values())if(opt.count>best.count ||(opt.count===best.count&&opt.score>best.score))best=opt;
     const notFound=subjects.filter(subject=>!best.selected.some(id=>groupById[id].subject===subject));
     state.suggestion=best.selected;
-    $('helperResult').innerHTML=`<div class="helper-result"><h3>Найдено ${best.selected.length} дополнительных направлений</h3><p>Плюс уже выбранные: ${chosenGroups().length}${olympEnabled(rec)?' и олимпиада':''}. Приоритеты используются для выбора среди вариантов с одинаковым числом занятий.</p>${best.selected.map(id=>{const g=groupById[id];return `<div>✓ ${h(g.subject)} · группа ${h(g.group)} <span style="color:#7990b0">(${h(prettySessions(g.sessions))})</span></div>`;}).join('')}${notFound.length?`<p style="margin-top:9px">Не поместились: ${h(notFound.join(', '))}</p>`:''}<button type="button" class="btn primary" id="applySuggestion" ${best.selected.length?'':'disabled'}>Добавить предложенные группы</button></div>`;
+    $('helperResult').innerHTML=`<div class="helper-result"><h3>Найдено ${best.selected.length} дополнительных направлений</h3><p>Плюс уже выбранные: ${chosenGroups().length}${acceptedOlympiads(rec).length?' и олимпиады: '+acceptedOlympiads(rec).length:''}. Приоритеты используются для выбора среди вариантов с одинаковым числом занятий.</p>${best.selected.map(id=>{const g=groupById[id];return `<div>✓ ${h(g.subject)} · группа ${h(g.group)} <span style="color:#7990b0">(${h(prettySessions(g.sessions))})</span></div>`;}).join('')}${notFound.length?`<p style="margin-top:9px">Не поместились: ${h(notFound.join(', '))}</p>`:''}<button type="button" class="btn primary" id="applySuggestion" ${best.selected.length?'':'disabled'}>Добавить предложенные группы</button></div>`;
     $('applySuggestion').addEventListener('click',()=>{
       for(const id of state.suggestion||[])if(allowedFor(groupById[id])&&!rec.chosen.includes(id))rec.chosen.push(id);
       updateState();notify('Совместимые группы добавлены',false,true);
@@ -234,7 +244,7 @@
     const confirmed=inScope.filter(s=>state.records[s.id]?.confirmed);
     const unconfirmed=inScope.filter(s=>!state.records[s.id]?.confirmed);
     let choices=0;
-    for(const stu of confirmed){const rec=record(stu.id);choices+=chosenGroups(rec,stu.id).length+(olympEnabled(rec,stu.id)?1:0);}
+    for(const stu of confirmed){const rec=record(stu.id);choices+=chosenGroups(rec,stu.id).length+acceptedOlympiads(rec,stu.id).length;}
     $('metrics').innerHTML=[['Учеников в параллели',inScope.length],['Подтвердили выбор',confirmed.length],['Не подтвердили',unconfirmed.length],['Выбранных направлений',choices]].map(([name,count])=>`<div class="metric"><strong>${count}</strong><span>${name}</span></div>`).join('');
     const cls=$('reportClass').value||'all';
     const classes=uniq(inScope.map(s=>s.className)).sort((a,b)=>a.localeCompare(b,'ru'));
@@ -245,7 +255,7 @@
     $('unconfirmedCount').textContent=`${filtered.length} учеников`;
     $('unconfirmedBody').innerHTML=filtered.map(stu=>`<tr><td>${h(stu.name)}</td><td>${h(stu.className)}</td><td>${h(stu.branch)}</td><td><span class="status-pending">Не подтверждено</span></td></tr>`).join('')||'<tr><td class="empty-row" colspan="4">Все ученики в этой выборке подтвердили расписание</td></tr>';
     $('confirmedBody').innerHTML=confirmed.map(stu=>{
-      const rec=record(stu.id);return `<tr><td>${h(stu.name)}</td><td>${h(stu.className)}</td><td>${chosenGroups(rec,stu.id).length+(olympEnabled(rec,stu.id)?1:0)}</td><td><button class="btn outline mini" data-unlock="${h(stu.id)}">Открыть для изменения</button></td></tr>`;
+      const rec=record(stu.id);return `<tr><td>${h(stu.name)}</td><td>${h(stu.className)}</td><td>${chosenGroups(rec,stu.id).length+acceptedOlympiads(rec,stu.id).length}</td><td><button class="btn outline mini" data-unlock="${h(stu.id)}">Открыть для изменения</button></td></tr>`;
     }).join('')||'<tr><td class="empty-row" colspan="4">Подтверждённых выборов пока нет</td></tr>';
     renderSummary(confirmed);
     renderAdminGroups();
@@ -262,17 +272,17 @@
     if(tab==='subjects'){
       head=['Направление','Выборов'];
       const counts=new Map(uniq(available.map(g=>g.subject)).map(sub=>[sub,0]));
-      for(const stu of confirmed){const rec=record(stu.id);for(const group of chosenGroups(rec,stu.id))counts.set(group.subject,(counts.get(group.subject)||0)+1);if(olympEnabled(rec,stu.id)){const sub=offer(stu.id).subject;counts.set(sub,(counts.get(sub)||0)+1);}}
+      for(const stu of confirmed){const rec=record(stu.id);for(const group of chosenGroups(rec,stu.id))counts.set(group.subject,(counts.get(group.subject)||0)+1);for(const o of acceptedOlympiads(rec,stu.id)) counts.set(o.subject,(counts.get(o.subject)||0)+1);}
       rows=[...counts].sort((a,b)=>b[1]-a[1]).map(([name,count])=>[name,String(count)]);
     }else if(tab==='groups'){
       head=['Направление','Группа','Выборов'];
-      rows=available.map(g=>[g.subject,'№ '+g.group,String(confirmed.reduce((n,stu)=>n+(g.type==='olympiad'?(olympEnabled(record(stu.id),stu.id)&&offer(stu.id).id===g.id?1:0):(record(stu.id).chosen.includes(g.id)?1:0)),0))]).sort((a,b)=>Number(b[2])-Number(a[2]));
+      rows=available.map(g=>[g.subject,'№ '+g.group,String(confirmed.reduce((n,stu)=>n+(g.type==='olympiad'?(acceptedOlympiads(record(stu.id),stu.id).some(o=>o.id===g.id)?1:0):(record(stu.id).chosen.includes(g.id)?1:0)),0))]).sort((a,b)=>Number(b[2])-Number(a[2]));
     }else{
       head=['Класс','Подтвердили','Всего учеников','Выбрано направлений'];
       const classes=uniq(inScope.map(stu=>stu.className)).sort((a,b)=>a.localeCompare(b,'ru'));
       rows=classes.map(className=>{
         const users=confirmed.filter(stu=>stu.className===className);
-        let total=0;for(const stu of users){const rec=record(stu.id);total+=chosenGroups(rec,stu.id).length+(olympEnabled(rec,stu.id)?1:0);}
+        let total=0;for(const stu of users){const rec=record(stu.id);total+=chosenGroups(rec,stu.id).length+acceptedOlympiads(rec,stu.id).length;}
         return [className,String(users.length),String(inScope.filter(stu=>stu.className===className).length),String(total)];
       });
     }
@@ -316,7 +326,7 @@
   function studentSelectionsForGroup(groupId){
     return DATA.students.reduce((n,s)=>n+(state.records[s.id]?.chosen?.includes(groupId)?1:0),0);
   }
-  function olympiadOffersForGroup(groupId){return DATA.students.reduce((n,s)=>n+(DATA.olympiadOffers[s.id]===groupId?1:0),0);}
+  function olympiadOffersForGroup(groupId){return DATA.students.reduce((n,s)=>n+((DATA.olympiadOffers[s.id]||[]).includes(groupId)?1:0),0);}
   function initSlotPicker(id){
     const el=$(id);
     el.innerHTML=DATA.days.map((day,i)=>`<fieldset class="day-choices"><legend>${h(day)}</legend>${DATA.slots.map(sl=>`<label class="slot-option"><input type="checkbox" value="${i+1}:${sl.id}"><span>${h(sl.name)}<small>${h(sl.from)}–${h(sl.to)}</small></span></label>`).join('')}</fieldset>`).join('');
@@ -386,7 +396,7 @@
     const users=reportStudents().sort((a,b)=>a.className.localeCompare(b.className,'ru')||a.name.localeCompare(b.name,'ru'));
     $('studentsScopeLabel').textContent=`${users.length} учеников · ${state.adminGrade}-я параллель`;
     $('manageStudentsBody').innerHTML=users.map(s=>{
-      const rec=state.records[s.id],text=rec?.confirmed?'Подтверждён':(rec?.chosen?.length||rec?.olympiad)?'В процессе':'Не выбрано';
+      const rec=state.records[s.id],text=rec?.confirmed?'Подтверждён':(rec?.chosen?.length||rec?.olympiads?.length)?'В процессе':'Не выбрано';
       const custom=state.addedStudents.some(x=>x.id===s.id);
       return `<tr><td>${h(s.name)}</td><td>${h(s.className)}</td><td>${h(text)}</td><td><div class="table-actions"><button type="button" class="btn outline mini" data-open-student="${h(s.id)}">Открыть</button>${custom?`<button type="button" class="btn ghost mini" data-delete-student="${h(s.id)}">Удалить</button>`:''}</div></td></tr>`;
     }).join('')||'<tr><td class="empty-row" colspan="4">В параллели пока нет учеников</td></tr>';
@@ -429,14 +439,16 @@
     const q=$('olympiadStudentSearch').value.trim().toLocaleLowerCase('ru');
     $('olympiadStudentsCount').textContent=`${users.length} учеников · отмечено ${state.offerSelected.size}`;
     const found=users.filter(s=>(s.name+' '+s.className).toLocaleLowerCase('ru').includes(q));
-    $('olympiadStudentPicker').innerHTML=found.map(s=>`<label class="student-check"><input type="checkbox" value="${h(s.id)}" ${state.offerSelected.has(s.id)?'checked':''}><span><strong>${h(s.name)}</strong><small>${h(s.className)}${offer(s.id)?' · уже предложено':''}</small></span></label>`).join('')||'<div class="microcopy">Учеников не найдено</div>';
-    const assigned=users.filter(s=>offer(s.id));
-    $('olympiadAssignmentsBody').innerHTML=assigned.map(s=>{
-      const o=offer(s.id),rec=state.records[s.id],status=rec?.olympiad?(rec.confirmed?'Принято и подтверждено':'Принято, не подтверждено'):(rec?.confirmed?'Не выбрано':'Предложено');
-      const locked=!!(rec?.olympiad||rec?.confirmed);
-      return `<tr><td>${h(s.name)}</td><td>${h(s.className)}</td><td>${h(o.subject)} · ${h(o.group)}</td><td>${h(prettySessions(o.sessions))}</td><td><span class="${rec?.olympiad?'status-accepted':'status-pending'}">${status}</span></td><td><div class="table-actions"><button type="button" class="btn outline mini" data-edit-offer="${h(s.id)}" ${locked?'disabled title="Выбор ученика заблокирован"':''}>Изменить</button><button type="button" class="btn ghost mini" data-revoke-offer="${h(s.id)}" ${locked?'disabled title="Выбор ученика заблокирован"':''}>Отозвать</button></div></td></tr>`;
+    $('olympiadStudentPicker').innerHTML=found.map(s=>`<label class="student-check"><input type="checkbox" value="${h(s.id)}" ${state.offerSelected.has(s.id)?'checked':''}><span><strong>${h(s.name)}</strong><small>${h(s.className)}${offers(s.id).length?' · предложений: '+offers(s.id).length:''}</small></span></label>`).join('')||'<div class="microcopy">Учеников не найдено</div>';
+    const assignments=users.flatMap(s=>offers(s.id).map(o=>({s,o})));
+    $('olympiadAssignmentsBody').innerHTML=assignments.map(({s,o})=>{
+      const rec=state.records[s.id],accepted=Boolean(rec?.olympiads?.includes(o.id));
+      const status=accepted?(rec?.confirmed?'Принято и подтверждено':'Принято, не подтверждено'):(rec?.confirmed?'Не выбрано':'Предложено');
+      const locked=!!(accepted||rec?.confirmed);
+      return `<tr><td>${h(s.name)}</td><td>${h(s.className)}</td><td>${h(o.subject)} · ${h(o.group)}</td><td>${h(prettySessions(o.sessions))}</td><td><span class="${accepted?'status-accepted':'status-pending'}">${status}</span></td><td><div class="table-actions"><button type="button" class="btn ghost mini" data-revoke-offer="${h(s.id)}" data-offer-group="${h(o.id)}" ${locked?'disabled title="Принятая или подтверждённая олимпиада заблокирована"':''}>Отозвать</button></div></td></tr>`;
     }).join('')||'<tr><td class="empty-row" colspan="6">В этой параллели ещё нет предложений олимпиады</td></tr>';
   }
+
   function resetOlympiadEditor(){
     $('olympiadForm').reset();state.offerSelected.clear();
     $('olympiadStudentSearch').value='';fieldError('olympiadFormError','');
@@ -452,28 +464,23 @@
     for(const id of ids){
       const s=studentById[id];if(!s||!scopedStudent(s))continue;
       const rec=state.records[id];
-      if(rec?.olympiad){skipped.push(s.name+' (уже принята)');continue;}
       if(rec?.confirmed){skipped.push(s.name+' (выбор подтверждён)');continue;}
       // Предлагаем созданную группу. Согласие и разрешение пересечений — за учеником.
-      state.offerOverrides[id]=group.id;updated++;
+      const current=normalizeIds(Object.prototype.hasOwnProperty.call(state.offerOverrides,id)?state.offerOverrides[id]:BASE.olympiadOffers[id]);
+      if(current.includes(group.id)){skipped.push(s.name+' (уже предложена)');continue;}
+      state.offerOverrides[id]=[...current,group.id];updated++;
     }
     syncData();persist();resetOlympiadEditor();renderAdmin();renderStudent();
     if(updated)notify(`Предложений группы «${group.subject}» назначено: ${updated}`,false,true);
     if(skipped.length)notify(`Не изменены: ${skipped.slice(0,3).join(', ')}${skipped.length>3?' и ещё '+(skipped.length-3):''}`,true);
   }
-  function editOffer(id){
-    const s=studentById[id],rec=state.records[id],o=offer(id);if(!s||!scopedStudent(s)||!o)return;
-    if(rec?.olympiad||rec?.confirmed)return notify('Сначала необходимо открыть и изменить подтверждённый выбор.',true);
-    $('olympiadGroup').value=o.id;
-    state.offerSelected=new Set([id]);
-    $('olympiadStudentSearch').value=s.name;renderAdminOlympiads();
-    $('olympiadForm').scrollIntoView({behavior:'smooth',block:'center'});
-  }
-  function revokeOffer(id){
-    const s=studentById[id],rec=state.records[id];if(!s||!scopedStudent(s)||!offer(id))return;
-    if(rec?.olympiad||rec?.confirmed)return notify('Нельзя отозвать олимпиаду после принятия или подтверждения выбора.',true);
-    if(!window.confirm(`Отозвать предложение олимпиады у «${s.name}»?`))return;
-    state.offerOverrides[id]=null;syncData();persist();renderAdmin();renderStudent();
+  function revokeOffer(id,groupId){
+    const s=studentById[id],rec=state.records[id];
+    if(!s||!scopedStudent(s)||!offers(id).some(o=>o.id===groupId))return;
+    if(rec?.olympiads?.includes(groupId)||rec?.confirmed)return notify('Нельзя отозвать принятую или подтверждённую олимпиаду.',true);
+    if(!window.confirm(`Отозвать предложение «${groupById[groupId].subject}» у ученика «${s.name}»?`))return;
+    state.offerOverrides[id]=normalizeIds(DATA.olympiadOffers[id]).filter(x=>x!==groupId);
+    syncData();persist();renderAdmin();renderStudent();
     notify('Предложение отозвано',false,true);
   }
   function setupAdminForms(){
@@ -506,11 +513,11 @@
       if(open)openStudent(open.dataset.openStudent);if(del)deleteStudent(del.dataset.deleteStudent);
     });
     $('olympiadAssignmentsBody').addEventListener('click',e=>{
-      const edit=e.target.closest('[data-edit-offer]'),revoke=e.target.closest('[data-revoke-offer]');
-      if(edit)editOffer(edit.dataset.editOffer);if(revoke)revokeOffer(revoke.dataset.revokeOffer);
+      const revoke=e.target.closest('[data-revoke-offer]');
+      if(revoke)revokeOffer(revoke.dataset.revokeOffer,revoke.dataset.offerGroup);
     });
     $('exportData').addEventListener('click',()=>{
-      const content={version:4,exportedAt:new Date().toISOString(),...{
+      const content={version:5,exportedAt:new Date().toISOString(),...{
         addedStudents:state.addedStudents,groupOverrides:state.groupOverrides,offerOverrides:state.offerOverrides,records:state.records
       }};
       const url=URL.createObjectURL(new Blob([JSON.stringify(content,null,2)],{type:'application/json'}));
@@ -537,6 +544,17 @@
     $('brandLink').addEventListener('click',e=>{e.preventDefault();setMode('student');});
     $('searchInput').addEventListener('input',e=>{state.search=e.target.value;renderCourses();});
     $('courseList').addEventListener('click',e=>{const btn=e.target.closest('[data-group]');if(btn)selectGroup(btn.dataset.group);});
+    $('olympiadBox').addEventListener('change',e=>{
+      const box=e.target.closest('[data-olympiad-toggle]');if(!box)return;
+      const g=groupById[box.dataset.olympiadToggle],rec=record();
+      if(!g||isLocked()||!offers().some(o=>o.id===g.id)){renderOlympiad();return;}
+      if(box.checked){
+        const conflicts=conflict(g,rec);
+        if(conflicts.length){notify('Пересечение: '+conflicts.join(', '),true);renderOlympiad();return;}
+        rec.olympiads=[...new Set([...rec.olympiads,g.id])];
+      }else rec.olympiads=rec.olympiads.filter(id=>id!==g.id);
+      updateState();
+    });
     $('chosenList').addEventListener('click',e=>{const btn=e.target.closest('[data-remove]');if(btn)selectGroup(btn.dataset.remove);});
     $('confirmSelection').addEventListener('click',()=>{
       const rec=record();if(rec.confirmed)return;

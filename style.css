@@ -47,3 +47,38 @@
 .admin-footer{gap:12px;flex-wrap:wrap}
 @media(max-width:900px){.admin-nav{grid-template-columns:repeat(2,minmax(0,1fr))}.slot-picker{grid-template-columns:repeat(3,minmax(0,1fr))}.student-checkbox-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.admin-nav{gap:8px}.admin-nav-btn{font-size:11px;padding:11px 5px;white-space:normal}.admin-nav-btn span{font-size:16px;margin-right:2px}.form-grid{display:grid;grid-template-columns:1fr}.form-grid .field-wrap,.form-action{min-width:0;width:100%}.form-action .btn{width:100%}.slot-picker{grid-template-columns:repeat(2,minmax(0,1fr))}.day-choices{padding:9px 7px}.slot-option{padding:8px 6px;gap:5px;font-size:11px}.slot-option small{font-size:9px}.schedule-editor-head{flex-wrap:wrap}.student-checkbox-grid{grid-template-columns:1fr}.offer-toolbar{align-items:stretch;flex-direction:column;gap:9px}.offer-toolbar input[type=search]{width:100%}.form-actions>.btn{flex:1}.admin-section:has(>form){padding:17px}}
+
+/* V5 — сначала расписание на всю ширину, затем сетка выбора допов */
+.student-layout{display:flex;flex-direction:column;gap:22px}
+.schedule-first{width:100%;min-width:0}
+.schedule-dashboard{padding:24px}
+.schedule-dashboard .chosen-list{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:19px}
+.schedule-dashboard .chosen-item{flex:0 1 240px;min-width:170px;border:1px solid #e3eaf6;background:#f6f8fe}
+.schedule-dashboard .empty-chosen{width:100%}
+.schedule-dashboard .schedule-table{border-spacing:6px;font-size:13px}
+.schedule-dashboard .schedule-table th{font-size:12px;padding:6px}
+.schedule-dashboard .schedule-table th:first-child{width:115px}
+.schedule-dashboard .schedule-table td{height:80px;padding:10px;font-size:12px}
+.schedule-dashboard .schedule-table td:first-child{font-size:12px}
+.schedule-dashboard .schedule-table .taken{font-size:12px}
+.schedule-dashboard #confirmSelection{width:auto;min-width:230px;display:block;margin:15px 0 0 auto}
+.schedule-dashboard .confirmation-hint{text-align:right}
+.workspace{display:block}
+.workspace>.main-column{display:flex;flex-direction:column;gap:22px}
+#courseList{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:14px}
+.course-card{min-width:0;padding:15px;display:flex;flex-direction:column}
+.course-head{align-items:flex-start}
+.course-head h3{font-size:15px;overflow-wrap:anywhere}
+.course-head .result-count{font-size:11px;white-space:nowrap}
+.course-card .group-list{margin-top:auto;padding-top:6px}
+.course-card .group-row{flex-direction:column;align-items:stretch;gap:10px;padding:10px}
+.course-card .group-row .btn{width:100%}
+.course-card .slot-chips{flex-wrap:wrap}
+.course-card .group-reason{overflow-wrap:anywhere}
+.olympiad-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.olympiad-list .olympiad-offer{margin:0;min-width:0}
+@media(max-width:1120px){#courseList{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){#courseList{grid-template-columns:1fr}.olympiad-list{grid-template-columns:1fr}.schedule-dashboard .schedule-table{min-width:610px}.schedule-dashboard{padding:17px}.schedule-dashboard #confirmSelection{width:100%;min-width:0}.schedule-dashboard .confirmation-hint{text-align:center}}
+@media(max-width:620px){.schedule-dashboard .chosen-item{flex:1 1 100%}.schedule-dashboard .schedule-table td{height:75px}.workspace>.main-column>.card{padding:17px}}
+/* Группы начинаются сразу под названием; карточки одной строки выравниваются по высоте без пустоты вверху. */
+.course-card .group-list{margin-top:0;padding-top:3px}
