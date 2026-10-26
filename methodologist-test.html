@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer"><title>Выбор допов — методолог / запись в Supabase</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#1b2b46;background:#f4f7fc;line-height:1.45}*{box-sizing:border-box}body{margin:0}main{max-width:1100px;margin:30px auto 70px;padding:0 20px}.eyebrow{font-size:.75rem;letter-spacing:.09em;font-weight:800;color:#3062af;text-transform:uppercase}h1{font-size:clamp(1.6rem,3vw,2.25rem);margin:8px 0}h2{font-size:1.15rem;margin:0 0 15px}h3{font-size:1rem;margin:0 0 8px}.muted,.help{color:#65758d}.help{font-size:.84rem;margin:8px 0}.notice{padding:13px 17px;border-radius:11px;background:#fff2de;border:1px solid #f0d5ac;line-height:1.5;margin:16px 0}.card{background:#fff;border:1px solid #dce4ef;border-radius:16px;padding:22px;margin-top:18px;box-shadow:0 3px 12px #273d6020}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.triple{grid-template-columns:repeat(3,minmax(0,1fr))}.field{display:flex;flex-direction:column;gap:5px;min-width:0}.field label{font-size:.87rem;font-weight:650}input,select{border-radius:9px;border:1px solid #bac7d9;background:#fff;padding:10px 12px;min-width:0;width:100%;font:inherit;color:#1b2b46}input:focus,select:focus{outline:2px solid #a7c6fe;border-color:#3673d4}.btn{font:inherit;font-size:.91rem;font-weight:750;border-radius:9px;border:0;padding:10px 17px;cursor:pointer;white-space:normal}.primary{color:#fff;background:#2b62bc}.secondary{color:#2d58a6;background:#e8f0ff}.btn:disabled{cursor:wait;opacity:.5}.actions{display:flex;gap:10px;align-items:center;margin-top:15px;flex-wrap:wrap}.pill{padding:7px 10px;border-radius:8px;background:#edf4ff;color:#2d60a7;font-size:.85rem;display:inline-block}.schedule{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:13px 0}.day{border:1px solid #dbe4f2;border-radius:10px;padding:10px;background:#f8fafd;min-width:0}.day strong{display:block;font-size:.87rem;margin-bottom:8px}.checkbox{display:flex;align-items:center;gap:6px;margin:7px 0;font-size:.82rem}.checkbox input{width:auto;accent-color:#2b62bc}.status{padding:11px 14px;border-radius:9px;margin:15px 0}.status.error{background:#ffebeb;border:1px solid #e8b4b4;color:#a02f2f}.status.ok{background:#ecf9f0;border:1px solid #acd8b8;color:#196442}.line{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #e6ebf3;padding:9px 0}.line>span:nth-child(2){color:#4e6584}.list{max-height:310px;overflow:auto}.mini{font-size:.82rem;color:#61728b}.two{display:grid;grid-template-columns:1fr 1fr;gap:17px}.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.chip{padding:5px 9px;background:#eef3fa;border-radius:7px;font-size:.82rem}.picker{max-height:180px;overflow:auto;border:1px solid #dce4ef;border-radius:9px;padding:8px 12px}.divider{margin:20px 0;border:0;border-top:1px solid #e6ebf3}.type{font-size:.72rem;padding:2px 7px;border-radius:5px;background:#fff0c4;color:#715600} [hidden]{display:none!important}@media(max-width:740px){main{margin:20px auto}.grid,.triple,.two{grid-template-columns:1fr}.schedule{grid-template-columns:repeat(2,minmax(0,1fr))}.day:last-child{grid-column:1/-1}.card{padding:17px}}@media(max-width:430px){.schedule{grid-template-columns:1fr}.day:last-child{grid-column:auto}}
+</style>
+</head>
+<body><main>
+<p class="eyebrow">Выбор допов · отдельная тестовая страница</p>
+<h1>Кабинет методолога</h1>
+<p class="muted">Проверяем <strong>реальную запись в Supabase</strong>. Основной сайт V5 остаётся без изменений.</p>
+<div class="notice">Только вымышленные данные. Филиал назначается автоматически по аккаунту методолога. Нельзя менять или удалять записи: на этом этапе это сознательно закрыто.</div>
+<section class="card" id="loginCard">
+<h2>1. Подключение</h2>
+<form id="loginForm">
+<div class="grid"><div class="field"><label for="url">Project URL</label><input id="url" required placeholder="https://xxxx.supabase.co" spellcheck="false"></div><div class="field"><label for="key">Publishable key</label><input id="key" required placeholder="sb_publishable_..." spellcheck="false"></div><div class="field"><label for="email">Email методолога</label><input id="email" required type="email" autocomplete="username"></div><div class="field"><label for="password">Пароль методолога (не пароль базы)</label><input id="password" required type="password" autocomplete="current-password"></div></div>
+<div class="actions"><button class="btn primary" id="loginButton" type="submit">Войти</button><button class="btn secondary" id="logoutButton" type="button" hidden>Выйти</button></div>
+<p class="help">Используется только Publishable key. Secret key и service_role сюда вводить нельзя. Сессия не сохраняется после закрытия страницы.</p>
+</form>
+</section>
+<div id="feedback" class="status" role="status" aria-live="polite" hidden></div>
+<div id="workspace" hidden>
+<section class="card"><h2>Филиал методолога</h2><div class="grid"><div><div class="mini">Филиал</div><strong id="branchName"></strong></div><div><div class="mini">Роль</div><strong id="roleName"></strong></div></div><p class="help">Работать можно с параллелями 1–4 одного филиала. Другие филиалы недоступны на уровне PostgreSQL.</p></section>
+<div class="two">
+<section class="card"><h2>2. Добавить ученика</h2>
+<form id="studentForm"><div class="field"><label for="studentName">Фамилия и имя (вымышленные)</label><input id="studentName" required maxlength="100" placeholder="Тестовый Ученик"></div><div class="grid" style="margin-top:12px"><div class="field"><label for="studentGrade">Параллель</label><select id="studentGrade"><option value="1">1 класс</option><option value="2" selected>2 класс</option><option value="3">3 класс</option><option value="4">4 класс</option></select></div><div class="field"><label for="studentLetter">Буква класса</label><select id="studentLetter"><option>А</option><option>Б</option><option>В</option><option>Г</option><option>Д</option></select></div></div><div class="actions"><button class="btn primary" type="submit">Добавить ученика</button></div></form>
+<hr class="divider"><h3>Ученики филиала <span id="studentsCount" class="pill"></span></h3><div id="studentsList" class="list"></div></section>
+<section class="card"><h2>3. Общий справочник допов</h2>
+<form id="subjectForm"><div class="field"><label for="subjectName">Название нового направления</label><input id="subjectName" required maxlength="100" placeholder="Например, Робототехника"></div><div class="actions"><button class="btn primary" type="submit">Создать направление</button></div></form>
+<p class="help">Название общее для всех филиалов, а группы и расписание создаются отдельно для каждого филиала и параллели.</p>
+<hr class="divider"><h3>Созданные направления <span id="subjectsCount" class="pill"></span></h3><div id="subjectsList" class="list"></div>
+</section></div>
+<section class="card"><h2>4. Создать группу и расписание</h2><form id="groupForm">
+<div class="grid triple"><div class="field"><label for="groupSubject">Доп</label><select id="groupSubject" required></select></div><div class="field"><label for="groupGrade">Параллель</label><select id="groupGrade"><option value="1">1 класс</option><option value="2" selected>2 класс</option><option value="3">3 класс</option><option value="4">4 класс</option></select></div><div class="field"><label for="groupType">Тип допа</label><select id="groupType"><option value="regular">Обычный доп</option><option value="olympiad">Олимпиада</option></select></div><div class="field"><label for="groupName">Название группы</label><input id="groupName" required maxlength="100" placeholder="Группа №1"></div></div>
+<p class="help">Выбери все дни и часы занятий группы. Создание группы и расписания происходит одной операцией: либо сохранится всё, либо ничего.</p>
+<div class="schedule" id="sessionPicker"></div><div class="actions"><button class="btn primary" id="createGroup" type="submit">Создать группу с расписанием</button></div></form>
+<hr class="divider"><h3>Группы филиала <span id="groupsCount" class="pill"></span></h3><div id="groupsList" class="list"></div></section>
+<section class="card"><h2>5. Предложить олимпиаду ученикам</h2>
+<p class="help">Сначала создай олимпиаду в разделе выше. Одному ученику можно предложить несколько олимпиад, но принять несовместимые по времени он не сможет (приём подключим на следующем этапе).</p>
+<form id="offerForm"><div class="grid"><div class="field"><label for="offerGroup">Группа олимпиады</label><select id="offerGroup" required></select></div><div class="field"><label for="offerSearch">Поиск ученика</label><input id="offerSearch" type="search" placeholder="Поиск по имени"></div></div>
+<div class="picker" id="offerStudents" style="margin-top:12px"></div><div class="actions"><button class="btn primary" id="createOffer" type="submit">Предложить выбранным ученикам</button></div></form>
+<hr class="divider"><h3>Предложения олимпиады <span id="offersCount" class="pill"></span></h3><div id="offersList" class="list"></div></section>
+</div>
+</main>
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const $=id=>document.getElementById(id);
+let client=null,branch=null,students=[],subjects=[],groups=[],sessions=[],offers=[],slots=[];
+const weekdays=['ПН','ВТ','СР','ЧТ','ПТ'];
+function msg(value,error=false){const e=$('feedback');e.hidden=false;e.className='status '+(error?'error':'ok');e.textContent=value; e.scrollIntoView({block:'nearest',behavior:'smooth'});}
+function fillSelect(id,items,placeholder='Выберите'){const node=$(id); const old=node.value;node.replaceChildren(new Option(placeholder,''));for(const item of items)node.add(new Option(item.label,item.value));if(items.some(x=>String(x.value)===old))node.value=old;}
+function textItem(el,left,right){const row=document.createElement('div');row.className='line';const a=document.createElement('span');const b=document.createElement('span');a.textContent=left;b.textContent=right;row.append(a,b);el.append(row);}
+function scopeClass(s){return `${s.grade} «${s.class_letter}»`;}
+function groupTitle(g){return `${subjects.find(s=>s.id===g.subject_id)?.name||'Доп'} · ${g.group_name} · ${g.grade} кл.`;}
+function slotLabel(s){const t=slots.find(x=>x.id===s.slot_id);return `${weekdays[s.weekday-1]} ${t?.time_from?.slice(0,5)||'—'}–${t?.time_to?.slice(0,5)||'—'}`;}
+async function queryTable(name,columns='*'){const {data,error}=await client.from(name).select(columns);if(error)throw new Error(`${name}: ${error.message}`);return data||[];}
+async function reload(){
+ const [a,b,c,d,e,f]=await Promise.all([
+  queryTable('students','id,branch_id,full_name,grade,class_letter,confirmed_at'),
+  queryTable('subjects','id,name'),
+  queryTable('study_groups','id,subject_id,branch_id,grade,group_name,kind'),
+  queryTable('group_sessions','group_id,weekday,slot_id'),
+  queryTable('olympiad_offers','student_id,group_id,status'),
+  queryTable('time_slots','id,time_from,time_to')
+ ]);
+ students=a.sort((x,y)=>x.grade-y.grade||x.full_name.localeCompare(y.full_name,'ru'));
+ subjects=b.sort((x,y)=>x.name.localeCompare(y.name,'ru'));
+ groups=c.sort((x,y)=>x.grade-y.grade||x.group_name.localeCompare(y.group_name,'ru'));
+ sessions=d;offers=e;slots=f.sort((x,y)=>x.id-y.id);
+ render();
+}
+function render(){
+ $('studentsCount').textContent=students.length;
+ $('subjectsCount').textContent=subjects.length;
+ $('groupsCount').textContent=groups.length;
+ $('offersCount').textContent=offers.length;
+ $('studentsList').replaceChildren();
+ if(!students.length)textItem($('studentsList'),'Пока никого нет','—');
+ for(const s of students)textItem($('studentsList'),s.full_name,`${scopeClass(s)} · ${s.confirmed_at?'подтверждено':'не подтверждено'}`);
+ $('subjectsList').replaceChildren();
+ if(!subjects.length)textItem($('subjectsList'),'Справочник пуст','—');
+ for(const s of subjects)textItem($('subjectsList'),s.name,'');
+ fillSelect('groupSubject',subjects.map(s=>({label:s.name,value:s.id})),'Выбери направление');
+ $('groupsList').replaceChildren();
+ if(!groups.length)textItem($('groupsList'),'Групп ещё нет','—');
+ for(const g of groups){const times=sessions.filter(s=>s.group_id===g.id).map(slotLabel).join(' · ');textItem($('groupsList'),groupTitle(g)+(g.kind==='olympiad'?' ★':''),times||'Нет расписания');}
+ fillSelect('offerGroup',groups.filter(g=>g.kind==='olympiad').map(g=>({label:groupTitle(g),value:g.id})),'Выбери олимпиаду');
+ drawOfferStudents();
+ $('offersList').replaceChildren();
+ if(!offers.length)textItem($('offersList'),'Предложений пока нет','—');
+ for(const o of offers){let s=students.find(x=>x.id===o.student_id);let g=groups.find(x=>x.id===o.group_id);textItem($('offersList'),s?.full_name||'Ученик',`${g?groupTitle(g):'Олимпиада'} · ${o.status}`);}
+}
+function drawOfferStudents(){
+ const g=groups.find(x=>x.id===$('offerGroup').value),n=$('offerStudents');n.replaceChildren();
+ const search=$('offerSearch').value.toLocaleLowerCase('ru');
+ if(!g){const t=document.createElement('p');t.className='mini';t.textContent='Сначала создай группу олимпиады и выбери её выше.';n.append(t);return;}
+ const matching=students.filter(s=>s.grade===g.grade&&!s.confirmed_at&&s.full_name.toLocaleLowerCase('ru').includes(search));
+ if(!matching.length){const t=document.createElement('p');t.className='mini';t.textContent='Не найдены ученики этой параллели с незавершённым выбором.';n.append(t);return;}
+ for(const s of matching){const l=document.createElement('label');l.className='checkbox';const box=document.createElement('input');box.type='checkbox';box.value=s.id;box.disabled=offers.some(o=>o.group_id===g.id&&o.student_id===s.id);const label=document.createElement('span');label.textContent=`${s.full_name} · ${scopeClass(s)}${box.disabled?' (уже предложено)':''}`;l.append(box,label);n.append(l);}
+}
+function schedulePicker(){const p=$('sessionPicker');p.replaceChildren();for(let weekday=1;weekday<=5;weekday++){const cell=document.createElement('div');cell.className='day';const title=document.createElement('strong');title.textContent=weekdays[weekday-1];cell.append(title);for(const s of slots){const l=document.createElement('label');l.className='checkbox';const inp=document.createElement('input');inp.type='checkbox';inp.name='session';inp.value=`${weekday}:${s.id}`;const sp=document.createElement('span');sp.textContent=`${s.time_from.slice(0,5)}–${s.time_to.slice(0,5)}`;l.append(inp,sp);cell.append(l);}p.append(cell);}}
+async function runForm(event,fn){event.preventDefault();const button=event.submitter||event.target.querySelector('button[type=submit]');if(button)button.disabled=true;try{await fn();await reload();msg('Сохранено в Supabase. Данные доступны только пользователям с нужными правами.');}catch(e){msg(e.message||String(e),true);}finally{if(button)button.disabled=false;}}
+$('loginForm').addEventListener('submit',ev=>runForm(ev,async()=>{
+ const url=$('url').value.trim().replace(/\/+$/,'');const key=$('key').value.trim();
+ if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url))throw new Error('Адрес должен быть вида https://xxxxx.supabase.co');
+ if(!key.startsWith('sb_publishable_'))throw new Error('Используй только sb_publishable_...');
+ client=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+ const {data,error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
+ $('password').value='';if(error)throw error;
+ const {data:profile,error:profileError}=await client.from('profiles').select('role,branch_id').eq('user_id',data.user.id).single();
+ if(profileError)throw profileError;if(profile.role!=='methodologist')throw new Error('Эта страница доступна только методологу.');
+ const {data:b,error:branchError}=await client.from('branches').select('id,name').eq('id',profile.branch_id).single();if(branchError)throw branchError;
+ branch=b;$('branchName').textContent=b.name;$('roleName').textContent=profile.role;
+ $('workspace').hidden=false;$('logoutButton').hidden=false;$('loginButton').textContent='Войти снова';
+ await reload();schedulePicker();
+}));
+$('logoutButton').addEventListener('click',async()=>{if(client)await client.auth.signOut({scope:'local'});client=null;branch=null;students=[];groups=[];offers=[];$('workspace').hidden=true;$('logoutButton').hidden=true;$('password').value='';msg('Вы вышли из тестового кабинета.');});
+$('studentForm').addEventListener('submit',ev=>runForm(ev,async()=>{
+ const name=$('studentName').value.trim();if(name.length<2)throw new Error('Введи имя ученика');
+ const {error}=await client.from('students').insert({branch_id:branch.id,grade:Number($('studentGrade').value),class_letter:$('studentLetter').value,full_name:name});
+ if(error)throw error;$('studentName').value='';
+}));
+$('subjectForm').addEventListener('submit',ev=>runForm(ev,async()=>{
+ const name=$('subjectName').value.trim();if(name.length<2)throw new Error('Слишком короткое название');
+ const existing=subjects.find(x=>x.name.toLocaleLowerCase('ru')===name.toLocaleLowerCase('ru'));
+ if(existing)throw new Error('Такое направление уже существует: выбери его при создании группы.');
+ const {error}=await client.from('subjects').insert({name});if(error)throw error;$('subjectName').value='';
+}));
+$('groupForm').addEventListener('submit',ev=>runForm(ev,async()=>{
+ const rows=[...document.querySelectorAll('input[name=session]:checked')].map(e=>{const [weekday,slot_id]=e.value.split(':').map(Number);return {weekday,slot_id};});
+ if(!rows.length)throw new Error('Выбери хотя бы один день и час занятия.');
+ const {error}=await client.rpc('create_group_with_sessions',{
+  p_subject_id:$('groupSubject').value,p_branch_id:branch.id,p_grade:Number($('groupGrade').value),
+  p_group_name:$('groupName').value.trim(),p_kind:$('groupType').value,p_sessions:rows
+ });if(error)throw error;
+ $('groupName').value='';document.querySelectorAll('input[name=session]').forEach(x=>x.checked=false);
+}));
+$('offerGroup').addEventListener('change',drawOfferStudents);$('offerSearch').addEventListener('input',drawOfferStudents);
+$('offerForm').addEventListener('submit',ev=>runForm(ev,async()=>{
+ const g=groups.find(x=>x.id===$('offerGroup').value);if(!g||g.kind!=='olympiad')throw new Error('Выбери созданную группу олимпиады.');
+ const ids=[...document.querySelectorAll('#offerStudents input:checked:not(:disabled)')].map(i=>i.value);
+ if(!ids.length)throw new Error('Отметь хотя бы одного ученика.');
+ const entries=ids.map(student_id=>({student_id,group_id:g.id,branch_id:branch.id,grade:g.grade}));
+ const {error}=await client.from('olympiad_offers').insert(entries);if(error)throw error;
+}));
+</script></body></html>
