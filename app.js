@@ -7,7 +7,7 @@ const configKey = 'vybor_dopov_supabase_v6'; // сохраняем подклю�
 const state = {
   client:null,user:null,profile:null,branch:null,myStudent:null,grade:2,
   students:[],studentAccounts:[],subjects:[],groups:[],sessions:[],slots:[],offers:[],choices:[],
-  panel:'overview',report:'subjects',search:'',offerSearch:'',busy:false,yearSettings:[],accountInfo:new Map()
+  panel:'overview',report:'subjects',search:'',offerSearch:'',busy:false,accountInfo:new Map()
 };
 let noticeTimer;
 function notice(message,error=false){
@@ -107,28 +107,24 @@ async function logout(){
 async function reload(){
   if(!state.client || !state.profile)return;
   if(state.profile.role==='methodologist'){
-    const {error}=await state.client.rpc('v8_close_empty');if(error)throw new Error('Завершение пустых выборов: '+error.message);
+    try{const a=await accountsApi('list');state.accountInfo=new Map((a.students||[]).map(x=>[x.id,x]));}
+    catch(e){state.accountInfo=new Map();notice('Не удалось получить статусы учётных записей: '+friendly(e),true);}
   }
-  if(state.profile.role==='methodologist'){
-    try {const accounts=await accountsApi('list');state.accountInfo=new Map((accounts.students||[]).map(s=>[s.id,s]));}
-    catch(err){state.accountInfo=new Map();notice('Не удалось загрузить статусы учётных записей: '+friendly(err),true);}
-  }
-  const [students,studentAccounts,subjects,groups,sessions,slots,offers,choices,yearSettings]=await Promise.all([
-    read('students','id,branch_id,grade,class_letter,full_name,user_id,confirmed_at,v8_closed_empty_at'),
+  const [students,studentAccounts,subjects,groups,sessions,slots,offers,choices]=await Promise.all([
+    read('students','id,branch_id,grade,class_letter,full_name,user_id,confirmed_at'),
     read('student_accounts','student_id,login'),
     read('subjects','id,name'),
     read('study_groups','id,branch_id,grade,subject_id,group_name,kind'),
     read('group_sessions','group_id,weekday,slot_id'),
     read('time_slots','id,time_from,time_to'),
     read('olympiad_offers','student_id,group_id,branch_id,grade,status'),
-    read('regular_selections','student_id,group_id,branch_id,grade'),
-    read('branch_year_settings','branch_id,year_start,selection_deadline')
+    read('regular_selections','student_id,group_id,branch_id,grade')
   ]);
   // Не полагаемся на фильтр клиента для безопасности: серверные RLS применяются к каждому запросу.
   Object.assign(state,{
     students:students.sort((a,b)=>a.grade-b.grade||a.full_name.localeCompare(b.full_name,'ru')),studentAccounts,
     subjects:subjects.sort((a,b)=>a.name.localeCompare(b.name,'ru')),
-    groups,sessions,slots:slots.sort((a,b)=>a.id-b.id),offers,choices,yearSettings
+    groups,sessions,slots:slots.sort((a,b)=>a.id-b.id),offers,choices
   });
   if(state.profile.role==='student'){
     state.myStudent=state.students.find(s=>s.user_id===state.user.id);
@@ -158,17 +154,17 @@ function conflicting(id,candidate,excludeId){
 const empty = (text='Пока записей нет')=>`<tr><td colspan="8" class="muted-empty">${esc(text)}</td></tr>`;
 function renderStudent(){
   const st=state.myStudent; if(!st)return;
-  const locked=Boolean(st.confirmed_at||st.v8_closed_empty_at||v8StudentDeadlinePassed());
+  const locked=Boolean(st.confirmed_at);
   $('studentMeta').innerHTML=`<span class="student-chip">${esc(studentLabel(st.id))}</span><span class="student-chip">${st.grade} «${esc(st.class_letter)}»</span><span class="student-chip">${esc(state.branch.name)}</span>`;
   $('studentStatus').className='status-label'+(locked?' confirmed':'');
-  $('studentStatus').textContent=st.confirmed_at?'✓ Выбор подтверждён':st.v8_closed_empty_at?'Закрыто без выбора':v8StudentDeadlinePassed()?'Срок выбора завершён':'Выбор не подтверждён';
+  $('studentStatus').textContent=locked?'✓ Выбор подтверждён':'Выбор не подтверждён';
   const selected=selectedRegular(st.id),accepted=selectedOlympiads(st.id),list=[...selected,...accepted];
   $('selectedCount').textContent=String(list.length);
   $('chosenList').innerHTML=list.length?list.map(g=>`<div class="chosen-item"><div><span class="name">${esc(subject(g.subject_id))}</span><span class="detail">${g.kind==='olympiad'?'Олимпиада · ':''}${esc(g.group_name)}</span></div>${g.kind==='regular'?`<button type="button" data-remove="${esc(g.id)}" class="remove-button" title="Убрать" ${locked?'disabled':''}>×</button>`:'<span>★</span>'}</div>`).join(''):'<div class="empty-chosen">Выбранные занятия появятся здесь</div>';
   const cells=new Map();for(const g of list)for(const ses of groupSlots(g.id))cells.set(`${ses.weekday}:${ses.slot_id}`,{title:subject(g.subject_id),kind:g.kind});
   $('scheduleBody').innerHTML=state.slots.map(sl=>`<tr><td><strong>${esc(sl.time_from.slice(0,5))}</strong><div>${esc(sl.time_to.slice(0,5))}</div></td>${[1,2,3,4,5].map(day=>{let c=cells.get(`${day}:${sl.id}`);return c?`<td class="${c.kind==='olympiad'?'olymp':'taken'}">${esc(c.title)}</td>`:'<td>—</td>'}).join('')}</tr>`).join('');
-  $('confirmSelection').disabled=locked;
-  $('confirmSelection').textContent=locked?'Выбор закрыт':list.length?'Подтвердить выбор':'Подтвердить отсутствие допов';
+  $('confirmSelection').disabled=locked||!list.length;
+  $('confirmSelection').textContent=locked?'✓ Расписание подтверждено':'Подтвердить выбор';
   const myOffers=state.offers.filter(x=>x.student_id===st.id);
   $('olympiadBox').innerHTML=myOffers.length?`<div class="olympiad-list">${myOffers.map(o=>{
     const g=group(o.group_id);if(!g)return '';
@@ -190,7 +186,7 @@ function renderStudent(){
   }).join('')||'<div class="offer-empty">Для вашей параллели ещё не созданы занятия.</div>';
 }
 async function selectGroup(groupId){
-  const st=state.myStudent, g=group(groupId);if(!g||!st||st.confirmed_at||st.v8_closed_empty_at||v8StudentDeadlinePassed())return;
+  const st=state.myStudent, g=group(groupId);if(!g||!st||st.confirmed_at)return;
   const old=selectedRegular(st.id).find(x=>x.subject_id===g.subject_id);
   await operation(async()=>{
     let response;
@@ -201,7 +197,7 @@ async function selectGroup(groupId){
   });
 }
 async function changeOffer(groupId,status){
-  const st=state.myStudent;if(!st||st.confirmed_at||st.v8_closed_empty_at||v8StudentDeadlinePassed())return;
+  const st=state.myStudent;if(!st||st.confirmed_at)return;
   await operation(async()=>{
     const {error}=await state.client.from('olympiad_offers').update({status}).eq('student_id',st.id).eq('group_id',groupId);
     if(error)throw error;
@@ -210,22 +206,6 @@ async function changeOffer(groupId,status){
 function renderSlotPicker(){
   $('sessionPicker').innerHTML=[1,2,3,4,5].map(d=>`<fieldset class="day-choices"><legend>${days[d]}</legend>${state.slots.map(s=>`<label class="slot-option"><input type="checkbox" name="session" value="${d}:${s.id}"><span>Доп №${s.id}<small>${esc(s.time_from.slice(0,5))}–${esc(s.time_to.slice(0,5))}</small></span></label>`).join('')}</fieldset>`).join('');
 }
-function v8ActiveYear(){return state.yearSettings.find(x=>x.branch_id===state.branch?.id);}
-function v8StudentDeadlinePassed(){const y=v8ActiveYear();if(!y)return true;const day=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Moscow',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());return day>y.selection_deadline;}
-function v8Status(s){if(s.confirmed_at)return 'Подтверждено учеником';if(s.v8_closed_empty_at)return 'Закрыто без выбора';if(busyGroups(s.id).length)return 'Черновик';return 'Не приступил';}
-function renderV8(){
- const y=v8ActiveYear(),yearInput=$('v8Year'),deadlineInput=$('v8Deadline');
- const currentYear=Number(new Intl.DateTimeFormat('en',{timeZone:'Europe/Moscow',year:'numeric'}).format(new Date()));
- const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Moscow',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
- const defaultYear=today.slice(5)>='09-01'?currentYear+1:currentYear;
- yearInput.value=y?.year_start||defaultYear;deadlineInput.value=y?.selection_deadline||`${defaultYear}-08-20`;
- yearInput.disabled=Boolean(y); $('v8YearHint').textContent=y?`Учебный год ${y.year_start}/${y.year_start+1}. Последний день выбора — ${y.selection_deadline}.`:'Сначала установите учебный год и срок выбора. До этого ученический выбор закрыт.';
- const arr=activeStudents(),labels=['Подтверждено учеником','Не приступил','Черновик','Закрыто без выбора'];
- $('v8Statuses').innerHTML=labels.map(l=>`<div class="metric"><strong>${arr.filter(s=>v8Status(s)===l).length}</strong><span>${esc(l)}</span></div>`).join('');
-}
-async function v8SaveYear(ev){ev.preventDefault();await operation(async()=>{
- const {error}=await state.client.rpc('v8_set_year_settings',{p_year:Number($('v8Year').value),p_deadline:$('v8Deadline').value});if(error)throw error;
-},ev.submitter);}
 async function accountsApi(action,params={}){
   const {data,error}=await state.client.functions.invoke('school-accounts',{body:{action,...params}});
   if(error){let detail=error.message;try{detail=(await error.context.json()).error||detail;}catch{}throw new Error(detail);}
@@ -253,15 +233,14 @@ function renderAdmin(){
   $('adminGrade').value=String(state.grade);
   document.querySelectorAll('[data-panel-view]').forEach(node=>node.hidden=node.dataset.panelView!==state.panel);
   document.querySelectorAll('[data-panel]').forEach(b=>b.classList.toggle('active',b.dataset.panel===state.panel));
-  renderV8();
   const students=activeStudents(),groups=activeGroups();
   $('metrics').innerHTML=[['Учеников',students.length],['Групп',groups.length],['Олимпиад',groups.filter(g=>g.kind==='olympiad').length],['Подтверждений',students.filter(s=>s.confirmed_at).length]].map(([label,count])=>`<div class="metric"><strong>${count}</strong><span>${label}</span></div>`).join('');
-  $('unconfirmedBody').innerHTML=students.filter(s=>!s.confirmed_at).map(s=>`<tr><td>${esc(studentLabel(s.id))}</td><td>${s.grade} «${esc(s.class_letter)}»</td><td>${esc(v8Status(s))}</td></tr>`).join('')||empty('Все ученики этой параллели подтвердили выбор или учеников ещё нет');
+  $('unconfirmedBody').innerHTML=students.filter(s=>!s.confirmed_at).map(s=>`<tr><td>${esc(studentLabel(s.id))}</td><td>${s.grade} «${esc(s.class_letter)}»</td><td>Не подтверждено</td></tr>`).join('')||empty('Все ученики этой параллели подтвердили выбор или учеников ещё нет');
   $('studentBody').innerHTML=students.map(s=>{
     const info=state.accountInfo.get(s.id),hasAccount=info?.has_account===true,active=info?.is_active!==false;
-    const accountStatus=!s.user_id?'Не привязана':!info?'Не определён':!hasAccount?'Нет доступа':active?'Активен':'Заблокирован';
+    const status=!s.user_id?'Не привязана':!info?'Не определён':!hasAccount?'Нет доступа':active?'Активен':'Заблокирован';
     const controls=hasAccount?`<div class="account-actions"><button type="button" class="btn outline mini" data-student-reset="${esc(s.id)}">Сменить пароль</button><button type="button" class="btn outline mini" data-student-toggle="${esc(s.id)}">${active?'Блокировать':'Разблокировать'}</button></div>`:`<a class="btn outline mini" href="accounts.html">Выдать доступ</a>`;
-    return `<tr><td>${esc(studentLabel(s.id))}<div class="small-status">ID: ${esc(s.id.slice(0,8))}… <button class="copy-inline" type="button" data-copy-id="${esc(s.id)}">Копировать ID</button></div></td><td>${s.grade} «${esc(s.class_letter)}»</td><td>${esc(accountStatus)}</td><td>${esc(v8Status(s))}</td><td>${controls}${s.confirmed_at?`<button class="btn outline mini" data-unlock="${esc(s.id)}">Открыть выбор</button>`:''}</td></tr>`;
+    return `<tr><td>${esc(studentLabel(s.id))}<div class="small-status">ID: ${esc(s.id.slice(0,8))}… <button class="copy-inline" type="button" data-copy-id="${esc(s.id)}">Копировать ID</button></div></td><td>${s.grade} «${esc(s.class_letter)}»</td><td>${esc(status)}</td><td>${s.confirmed_at?'✓ Подтверждено':'Нет подтверждения'}</td><td>${controls}${s.confirmed_at?`<button class="btn outline mini" data-unlock="${esc(s.id)}">Открыть выбор</button>`:''}</td></tr>`;
   }).join('')||empty('Добавьте первого ученика');
   $('groupSubject').innerHTML=state.subjects.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
   $('groupsBody').innerHTML=groups.map(g=>{
@@ -324,11 +303,10 @@ async function unlock(id){
   await operation(async()=>{const {error}=await state.client.from('students').update({confirmed_at:null}).eq('id',id);if(error)throw error;});
 }
 async function confirmChoice(){
-  if(!window.confirm('Подтвердить '+(busyGroups(state.myStudent?.id).length?'расписание':'отсутствие дополнительных занятий')+'? После этого самостоятельно изменить выбор нельзя.'))return;
+  if(!window.confirm('Подтвердить расписание? После этого изменить его сможет только методолог.'))return;
   await operation(async()=>{const {error}=await state.client.rpc('confirm_student_choice');if(error)throw error;},$('confirmSelection'));
 }
 $('loginForm').addEventListener('submit',login);
-$('v8YearForm').addEventListener('submit',v8SaveYear);
 $('loginMode').addEventListener('change',e=>{const isStudent=e.target.value==='student';$('emailField').hidden=isStudent;$('usernameField').hidden=!isStudent;$('email').required=!isStudent;$('username').required=isStudent;});
 $('logout').addEventListener('click',logout);
 $('refresh').addEventListener('click',()=>operation(async()=>{},$('refresh')));
@@ -353,6 +331,7 @@ $('studentBody').addEventListener('click',e=>{
   const btn=e.target.closest('[data-unlock]');if(btn)unlock(btn.dataset.unlock);
   const cp=e.target.closest('[data-copy-id]');if(cp)navigator.clipboard.writeText(cp.dataset.copyId).then(()=>notice('ID ученика скопирован.')).catch(()=>notice('Не удалось скопировать ID.',true));
 });
+restore();
+
 $('closeStudentPassword').addEventListener('click',()=>{$('newStudentPassword').textContent='';$('studentPasswordDialog').close();});
 $('copyStudentPassword').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(`Логин: ${$('newStudentLogin').textContent}\nПароль: ${$('newStudentPassword').textContent}`);notice('Учётные данные скопированы.');}catch{notice('Не удалось скопировать пароль.',true);}});
-restore();
