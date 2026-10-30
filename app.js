@@ -3,10 +3,10 @@ import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2
 const $ = id => document.getElementById(id);
 const esc = x => String(x ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const days = ['','ПН','ВТ','СР','ЧТ','ПТ'];
-const configKey = 'vybor_dopov_supabase_v6';
+const configKey = 'vybor_dopov_supabase_v6'; // сохраняем подключение V6
 const state = {
   client:null,user:null,profile:null,branch:null,myStudent:null,grade:2,
-  students:[],subjects:[],groups:[],sessions:[],slots:[],offers:[],choices:[],
+  students:[],studentAccounts:[],subjects:[],groups:[],sessions:[],slots:[],offers:[],choices:[],
   panel:'overview',report:'subjects',search:'',offerSearch:'',busy:false
 };
 let noticeTimer;
@@ -50,7 +50,17 @@ async function login(event){
   try{
     const url=$('projectUrl').value.trim().replace(/\/+$/,''),key=$('publishableKey').value.trim();
     state.client=createConfigClient(url,key);
-    const {data,error}=await state.client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
+    let data,error;
+    if($('loginMode').value==='student'){
+      const response=await state.client.functions.invoke('school-accounts', {body:{action:'login_student',login:$('username').value.trim(),password:$('password').value}});
+      if(response.error){let msg=response.error.message;try{msg=(await response.error.context.json()).error||msg;}catch{}throw new Error(msg);}
+      if(response.data?.error)throw new Error(response.data.error);
+      const session=await state.client.auth.setSession({access_token:response.data.access_token,refresh_token:response.data.refresh_token});
+      data=session.data;error=session.error;
+    } else {
+      const response=await state.client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
+      data=response.data;error=response.error;
+    }
     $('password').value='';if(error)throw error;
     localStorage.setItem(configKey,JSON.stringify({url,key}));
     state.user=data.user;
@@ -72,8 +82,10 @@ async function openWorkspace(){
   const {data:userData,error:authError}=await state.client.auth.getUser();
   if(authError || !userData?.user)throw new Error('Нет действующей сессии. Войди заново.');
   state.user=userData.user;
-  const {data:profile,error:pError}=await state.client.from('profiles').select('role,branch_id').eq('user_id',state.user.id).single();
+  const {data:profile,error:pError}=await state.client.from('profiles').select('role,branch_id,is_active').eq('user_id',state.user.id).single();
   if(pError)throw new Error('Нет привязанного профиля. '+pError.message);
+  if(profile.is_active===false)throw new Error('Учётная запись заблокирована.');
+  if(profile.role==='system_admin'){localStorage.setItem(configKey,JSON.stringify({url:$('projectUrl').value.trim(),key:$('publishableKey').value.trim()}));window.location.href='accounts.html';return;}
   if(!['methodologist','student'].includes(profile.role))throw new Error('Для этой роли кабинет ещё не создан.');
   state.profile=profile;
   const {data:branch,error:bError}=await state.client.from('branches').select('id,name').eq('id',profile.branch_id).single();
@@ -94,8 +106,9 @@ async function logout(){
 }
 async function reload(){
   if(!state.client || !state.profile)return;
-  const [students,subjects,groups,sessions,slots,offers,choices]=await Promise.all([
+  const [students,studentAccounts,subjects,groups,sessions,slots,offers,choices]=await Promise.all([
     read('students','id,branch_id,grade,class_letter,full_name,user_id,confirmed_at'),
+    read('student_accounts','student_id,login'),
     read('subjects','id,name'),
     read('study_groups','id,branch_id,grade,subject_id,group_name,kind'),
     read('group_sessions','group_id,weekday,slot_id'),
@@ -105,7 +118,7 @@ async function reload(){
   ]);
   // Не полагаемся на фильтр клиента для безопасности: серверные RLS применяются к каждому запросу.
   Object.assign(state,{
-    students:students.sort((a,b)=>a.grade-b.grade||a.full_name.localeCompare(b.full_name,'ru')),
+    students:students.sort((a,b)=>a.grade-b.grade||a.full_name.localeCompare(b.full_name,'ru')),studentAccounts,
     subjects:subjects.sort((a,b)=>a.name.localeCompare(b.name,'ru')),
     groups,sessions,slots:slots.sort((a,b)=>a.id-b.id),offers,choices
   });
@@ -115,6 +128,7 @@ async function reload(){
     renderStudent();
   } else renderAdmin();
 }
+function studentLabel(id){return state.studentAccounts.find(a=>a.student_id===id)?.login || state.students.find(s=>s.id===id)?.full_name || 'Ученик';}
 function subject(id){return state.subjects.find(x=>x.id===id)?.name || 'Неизвестное направление';}
 function group(id){return state.groups.find(x=>x.id===id);}
 function activeStudents(){return state.students.filter(s=>s.grade===state.grade && s.branch_id===state.branch.id);}
@@ -137,7 +151,7 @@ const empty = (text='Пока записей нет')=>`<tr><td colspan="8" clas
 function renderStudent(){
   const st=state.myStudent; if(!st)return;
   const locked=Boolean(st.confirmed_at);
-  $('studentMeta').innerHTML=`<span class="student-chip">${esc(st.full_name)}</span><span class="student-chip">${st.grade} «${esc(st.class_letter)}»</span><span class="student-chip">${esc(state.branch.name)}</span>`;
+  $('studentMeta').innerHTML=`<span class="student-chip">${esc(studentLabel(st.id))}</span><span class="student-chip">${st.grade} «${esc(st.class_letter)}»</span><span class="student-chip">${esc(state.branch.name)}</span>`;
   $('studentStatus').className='status-label'+(locked?' confirmed':'');
   $('studentStatus').textContent=locked?'✓ Выбор подтверждён':'Выбор не подтверждён';
   const selected=selectedRegular(st.id),accepted=selectedOlympiads(st.id),list=[...selected,...accepted];
@@ -194,8 +208,8 @@ function renderAdmin(){
   document.querySelectorAll('[data-panel]').forEach(b=>b.classList.toggle('active',b.dataset.panel===state.panel));
   const students=activeStudents(),groups=activeGroups();
   $('metrics').innerHTML=[['Учеников',students.length],['Групп',groups.length],['Олимпиад',groups.filter(g=>g.kind==='olympiad').length],['Подтверждений',students.filter(s=>s.confirmed_at).length]].map(([label,count])=>`<div class="metric"><strong>${count}</strong><span>${label}</span></div>`).join('');
-  $('unconfirmedBody').innerHTML=students.filter(s=>!s.confirmed_at).map(s=>`<tr><td>${esc(s.full_name)}</td><td>${s.grade} «${esc(s.class_letter)}»</td><td>Не подтверждено</td></tr>`).join('')||empty('Все ученики этой параллели подтвердили выбор или учеников ещё нет');
-  $('studentBody').innerHTML=students.map(s=>`<tr><td>${esc(s.full_name)}<div class="small-status">ID: ${esc(s.id.slice(0,8))}… <button class="copy-inline" type="button" data-copy-id="${esc(s.id)}" title="Скопировать полный UUID">Копировать ID</button></div></td><td>${s.grade} «${esc(s.class_letter)}»</td><td>${s.user_id?'✓ Подключена':'Не привязана'}</td><td>${s.confirmed_at?'✓ Подтверждено':'Нет подтверждения'}</td><td>${s.confirmed_at?`<button class="btn outline mini" data-unlock="${esc(s.id)}">Открыть выбор</button>`:'—'}</td></tr>`).join('')||empty('Добавьте первого ученика');
+  $('unconfirmedBody').innerHTML=students.filter(s=>!s.confirmed_at).map(s=>`<tr><td>${esc(studentLabel(s.id))}</td><td>${s.grade} «${esc(s.class_letter)}»</td><td>Не подтверждено</td></tr>`).join('')||empty('Все ученики этой параллели подтвердили выбор или учеников ещё нет');
+  $('studentBody').innerHTML=students.map(s=>`<tr><td>${esc(studentLabel(s.id))}<div class="small-status">ID: ${esc(s.id.slice(0,8))}… <button class="copy-inline" type="button" data-copy-id="${esc(s.id)}" title="Скопировать полный UUID">Копировать ID</button></div></td><td>${s.grade} «${esc(s.class_letter)}»</td><td>${s.user_id?'✓ Подключена':'Не привязана'}</td><td>${s.confirmed_at?'✓ Подтверждено':'Нет подтверждения'}</td><td>${s.confirmed_at?`<button class="btn outline mini" data-unlock="${esc(s.id)}">Открыть выбор</button>`:'—'}</td></tr>`).join('')||empty('Добавьте первого ученика');
   $('groupSubject').innerHTML=state.subjects.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
   $('groupsBody').innerHTML=groups.map(g=>{
     const count=g.kind==='regular'?state.choices.filter(x=>x.group_id===g.id).length:state.offers.filter(x=>x.group_id===g.id).length;
@@ -215,10 +229,10 @@ function renderAdmin(){
 }
 function renderOfferStudents(){
   const g=group($('offerGroup').value);
-  const eligible=activeStudents().filter(s=>!s.confirmed_at && s.full_name.toLocaleLowerCase('ru').includes(state.offerSearch.toLocaleLowerCase('ru')));
+  const eligible=activeStudents().filter(s=>!s.confirmed_at && studentLabel(s.id).toLocaleLowerCase('ru').includes(state.offerSearch.toLocaleLowerCase('ru')));
   $('offerStudents').innerHTML=g?eligible.map(s=>{
     const exists=state.offers.some(o=>o.student_id===s.id&&o.group_id===g.id);
-    return `<label class="student-check"><input type="checkbox" value="${esc(s.id)}" ${exists?'disabled':''}><span><strong>${esc(s.full_name)}</strong><small>${s.grade} «${esc(s.class_letter)}» ${exists?'· Уже предложена':''}</small></span></label>`;
+    return `<label class="student-check"><input type="checkbox" value="${esc(s.id)}" ${exists?'disabled':''}><span><strong>${esc(studentLabel(s.id))}</strong><small>${s.grade} «${esc(s.class_letter)}» ${exists?'· Уже предложена':''}</small></span></label>`;
   }).join('')||'<p class="muted-empty">Подходящих учеников нет.</p>':'<p class="muted-empty">Создайте группу олимпиады.</p>';
 }
 function renderSummary(){
@@ -231,11 +245,6 @@ function renderSummary(){
   $('summaryHead').innerHTML=`<tr><th>${state.report==='subjects'?'Направление':state.report==='groups'?'Группа':'Класс'}</th><th>Подтверждённых записей</th></tr>`;
   $('summaryBody').innerHTML=[...result].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'ru')).map(([key,n])=>`<tr><td>${esc(key)}</td><td>${n}</td></tr>`).join('')||empty('Пока нет подтверждённых выборов');
 }
-async function saveStudent(event){event.preventDefault();await operation(async()=>{
-  const name=$('studentName').value.trim();if(name.length<2)throw new Error('Укажите имя ученика.');
-  const {error}=await state.client.from('students').insert({branch_id:state.branch.id,grade:state.grade,class_letter:$('studentLetter').value,full_name:name});
-  if(error)throw error;$('studentName').value='';
-},event.submitter);}
 async function saveSubject(event){event.preventDefault();await operation(async()=>{
   const name=$('subjectName').value.trim();if(name.length<2)throw new Error('Название слишком короткое.');
   const {error}=await state.client.from('subjects').insert({name});
@@ -266,12 +275,13 @@ async function confirmChoice(){
   await operation(async()=>{const {error}=await state.client.rpc('confirm_student_choice');if(error)throw error;},$('confirmSelection'));
 }
 $('loginForm').addEventListener('submit',login);
+$('loginMode').addEventListener('change',e=>{const isStudent=e.target.value==='student';$('emailField').hidden=isStudent;$('usernameField').hidden=!isStudent;$('email').required=!isStudent;$('username').required=isStudent;});
 $('logout').addEventListener('click',logout);
 $('refresh').addEventListener('click',()=>operation(async()=>{},$('refresh')));
 $('adminGrade').addEventListener('change',event=>{state.grade=Number(event.target.value);renderAdmin();});
 document.querySelectorAll('[data-panel]').forEach(button=>button.addEventListener('click',()=>{state.panel=button.dataset.panel;renderAdmin();}));
 document.querySelectorAll('[data-report]').forEach(button=>button.addEventListener('click',()=>{state.report=button.dataset.report;document.querySelectorAll('[data-report]').forEach(b=>b.classList.toggle('active',b===button));renderSummary();}));
-$('studentForm').addEventListener('submit',saveStudent);
+// Создание ученика V7 доступно только в accounts.html через Edge Function. ФИО не отправляются в students.
 $('subjectForm').addEventListener('submit',saveSubject);
 $('groupForm').addEventListener('submit',saveGroup);
 $('offerForm').addEventListener('submit',saveOffers);
