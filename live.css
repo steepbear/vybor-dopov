@@ -3,3 +3,14 @@
 .copy-inline{border:0;background:none;color:#3e69d5;text-decoration:underline;font:inherit;font-weight:600;cursor:pointer;padding:0 5px}
 
 .account-link{margin:16px 0 22px}.account-link p{font-size:14px;line-height:1.5;max-width:720px;color:#62728d}.account-link .btn{display:inline-flex}#loginMode{min-height:43px;padding:8px 10px;border:1px solid #d5ddea;border-radius:9px;background:#fff;width:100%}
+
+.v8-year{margin-bottom:20px}.v8-year .metrics{margin-top:18px}.v8-year input{width:100%}
+
+/* V8: действия с учётными записями непосредственно в списке учеников */
+#studentBody .account-actions{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:5px}
+#studentBody td:last-child{min-width:220px}
+.v8-credentials{border:0;border-radius:18px;padding:0;max-width:min(420px,calc(100vw - 32px));width:100%;box-shadow:0 24px 70px #0005}
+.v8-credentials::backdrop{background:#0f172aa8}
+.v8-credentials-inner{padding:24px;display:grid;gap:12px}
+.v8-credentials-inner p{margin:0;overflow-wrap:anywhere}
+#newStudentPassword{font-family:monospace;font-size:1.35rem;user-select:all}
