@@ -9,3 +9,14 @@
 .v8-credentials::backdrop{background:#0f172aa8}
 .v8-credentials-inner{padding:24px;display:grid;gap:12px}
 .v8-credentials-inner p{margin:0;overflow-wrap:anywhere}
+/* V8 шаг 1: настройка учебного года филиала */
+.year-settings-card{margin-bottom:20px}
+.year-settings-form{display:flex;align-items:end;gap:14px;flex-wrap:wrap;margin:16px 0 6px}
+.year-settings-form>.field-wrap{flex:1 1 190px;max-width:280px}
+.year-settings-form .btn{min-height:43px}
+.year-settings-form select,.year-settings-form input{min-height:43px;width:100%}
+#yearSettingsStatus{margin:10px 0;color:#405577}
+@media(max-width:650px){.year-settings-form{display:grid;grid-template-columns:1fr}.year-settings-form>.field-wrap{max-width:none}.year-settings-form .btn{width:100%}}
+
+/* V8: истёк срок выбора */
+.status-label.closed{color:#b93b3b;background:#fff1f0;border-color:#f1c5be}

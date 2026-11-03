@@ -7,7 +7,7 @@ const configKey = 'vybor_dopov_supabase_v6'; // сохраняем подклю�
 const state = {
   client:null,user:null,profile:null,branch:null,myStudent:null,grade:2,
   students:[],studentAccounts:[],subjects:[],groups:[],sessions:[],slots:[],offers:[],choices:[],
-  panel:'overview',report:'subjects',search:'',offerSearch:'',busy:false,accountInfo:new Map()
+  panel:'overview',report:'subjects',search:'',offerSearch:'',busy:false,accountInfo:new Map(),yearSettings:null,yearSettingsError:null
 };
 let noticeTimer;
 function notice(message,error=false){
@@ -126,6 +126,12 @@ async function reload(){
     subjects:subjects.sort((a,b)=>a.name.localeCompare(b.name,'ru')),
     groups,sessions,slots:slots.sort((a,b)=>a.id-b.id),offers,choices
   });
+  // Читать дедлайн должен и ученик, чтобы интерфейс честно показывал блокировку.
+  const {data:yearData,error:yearError}=await state.client.from('branch_year_settings')
+    .select('branch_id,year_start,selection_deadline')
+    .eq('branch_id',state.branch.id).maybeSingle();
+  state.yearSettings=yearError?null:yearData;
+  state.yearSettingsError=yearError ? yearError.message : null;
   if(state.profile.role==='student'){
     state.myStudent=state.students.find(s=>s.user_id===state.user.id);
     if(!state.myStudent){$('studentMeta').textContent='Учётная запись ещё не привязана к ученику';$('studentStatus').textContent='Нет карточки ученика';$('courseList').replaceChildren();$('olympiadBox').replaceChildren();return;}
@@ -152,24 +158,36 @@ function conflicting(id,candidate,excludeId){
   return busyGroups(id).filter(g=>g.id!==candidate.id && g.id!==excludeId && sessionsClash(candidate.id,g.id));
 }
 const empty = (text='Пока записей нет')=>`<tr><td colspan="8" class="muted-empty">${esc(text)}</td></tr>`;
+function todayMoscowIso(){
+  const parts=new Intl.DateTimeFormat('en-GB',{
+    timeZone:'Europe/Moscow',year:'numeric',month:'2-digit',day:'2-digit'
+  }).formatToParts(new Date());
+  const values=Object.fromEntries(parts.map(p=>[p.type,p.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+function selectionDeadlinePassed(){
+  return Boolean(state.yearSettings?.selection_deadline && todayMoscowIso()>state.yearSettings.selection_deadline);
+}
+function showDate(iso){const [y,m,d]=iso.split('-');return `${d}.${m}.${y}`;}
 function renderStudent(){
   const st=state.myStudent; if(!st)return;
-  const locked=Boolean(st.confirmed_at);
-  $('studentMeta').innerHTML=`<span class="student-chip">${esc(studentLabel(st.id))}</span><span class="student-chip">${st.grade} «${esc(st.class_letter)}»</span><span class="student-chip">${esc(state.branch.name)}</span>`;
-  $('studentStatus').className='status-label'+(locked?' confirmed':'');
-  $('studentStatus').textContent=locked?'✓ Выбор подтверждён':'Выбор не подтверждён';
+  const locked=Boolean(st.confirmed_at),deadlineClosed=selectionDeadlinePassed(),readOnly=locked||deadlineClosed;
+  const deadline=state.yearSettings?.selection_deadline;
+  $('studentMeta').innerHTML=`<span class="student-chip">${esc(studentLabel(st.id))}</span><span class="student-chip">${st.grade} «${esc(st.class_letter)}»</span><span class="student-chip">${esc(state.branch.name)}</span>${deadline?`<span class="student-chip">Срок: ${esc(showDate(deadline))} МСК</span>`:''}`;
+  $('studentStatus').className='status-label'+(locked?' confirmed':deadlineClosed?' closed':'');
+  $('studentStatus').textContent=locked?'✓ Выбор подтверждён':deadlineClosed?`Срок выбора истёк ${showDate(deadline)}. Обратитесь к методологу.`:'Выбор не подтверждён';
   const selected=selectedRegular(st.id),accepted=selectedOlympiads(st.id),list=[...selected,...accepted];
   $('selectedCount').textContent=String(list.length);
-  $('chosenList').innerHTML=list.length?list.map(g=>`<div class="chosen-item"><div><span class="name">${esc(subject(g.subject_id))}</span><span class="detail">${g.kind==='olympiad'?'Олимпиада · ':''}${esc(g.group_name)}</span></div>${g.kind==='regular'?`<button type="button" data-remove="${esc(g.id)}" class="remove-button" title="Убрать" ${locked?'disabled':''}>×</button>`:'<span>★</span>'}</div>`).join(''):'<div class="empty-chosen">Выбранные занятия появятся здесь</div>';
+  $('chosenList').innerHTML=list.length?list.map(g=>`<div class="chosen-item"><div><span class="name">${esc(subject(g.subject_id))}</span><span class="detail">${g.kind==='olympiad'?'Олимпиада · ':''}${esc(g.group_name)}</span></div>${g.kind==='regular'?`<button type="button" data-remove="${esc(g.id)}" class="remove-button" title="Убрать" ${readOnly?'disabled':''}>×</button>`:'<span>★</span>'}</div>`).join(''):'<div class="empty-chosen">Выбранные занятия появятся здесь</div>';
   const cells=new Map();for(const g of list)for(const ses of groupSlots(g.id))cells.set(`${ses.weekday}:${ses.slot_id}`,{title:subject(g.subject_id),kind:g.kind});
   $('scheduleBody').innerHTML=state.slots.map(sl=>`<tr><td><strong>${esc(sl.time_from.slice(0,5))}</strong><div>${esc(sl.time_to.slice(0,5))}</div></td>${[1,2,3,4,5].map(day=>{let c=cells.get(`${day}:${sl.id}`);return c?`<td class="${c.kind==='olympiad'?'olymp':'taken'}">${esc(c.title)}</td>`:'<td>—</td>'}).join('')}</tr>`).join('');
-  $('confirmSelection').disabled=locked||!list.length;
-  $('confirmSelection').textContent=locked?'✓ Расписание подтверждено':'Подтвердить выбор';
+  $('confirmSelection').disabled=readOnly||!list.length;
+  $('confirmSelection').textContent=locked?'✓ Расписание подтверждено':deadlineClosed?'Срок выбора завершён':'Подтвердить выбор';
   const myOffers=state.offers.filter(x=>x.student_id===st.id);
   $('olympiadBox').innerHTML=myOffers.length?`<div class="olympiad-list">${myOffers.map(o=>{
     const g=group(o.group_id);if(!g)return '';
     const clash= o.status==='accepted'?[]:conflicting(st.id,g);
-    return `<div class="olympiad-offer"><div><h3>${esc(subject(g.subject_id))} · ${esc(g.group_name)}</h3><p>${o.status==='accepted'?'✓ Принята':o.status==='declined'?'Отклонена': 'Предложена'}${clash.length?' · пересечение: '+esc(clash.map(x=>subject(x.subject_id)).join(', ')):''}</p><div class="slot-chips">${groupSlots(g.id).map(s=>`<span class="slot-pill">${esc(slotLabel(s))}</span>`).join('')}</div><div class="mini-actions"><button class="btn ${o.status==='accepted'?'ghost':'outline'} mini" data-offer-action="accepted" data-offer-group="${esc(g.id)}" ${locked||clash.length?'disabled':''}>Принять</button><button class="btn ghost mini" data-offer-action="declined" data-offer-group="${esc(g.id)}" ${locked?'disabled':''}>Отклонить</button></div></div></div>`;
+    return `<div class="olympiad-offer"><div><h3>${esc(subject(g.subject_id))} · ${esc(g.group_name)}</h3><p>${o.status==='accepted'?'✓ Принята':o.status==='declined'?'Отклонена': 'Предложена'}${clash.length?' · пересечение: '+esc(clash.map(x=>subject(x.subject_id)).join(', ')):''}</p><div class="slot-chips">${groupSlots(g.id).map(s=>`<span class="slot-pill">${esc(slotLabel(s))}</span>`).join('')}</div><div class="mini-actions"><button class="btn ${o.status==='accepted'?'ghost':'outline'} mini" data-offer-action="accepted" data-offer-group="${esc(g.id)}" ${readOnly||clash.length?'disabled':''}>Принять</button><button class="btn ghost mini" data-offer-action="declined" data-offer-group="${esc(g.id)}" ${readOnly?'disabled':''}>Отклонить</button></div></div></div>`;
   }).join('')}</div>`:'<div class="offer-empty">Методолог пока не предложил олимпиады.</div>';
   const available=state.groups.filter(g=>g.branch_id===st.branch_id&&g.grade===st.grade&&g.kind==='regular');
   const subjects=[...new Set(available.map(g=>g.subject_id))].filter(id=>subject(id).toLocaleLowerCase('ru').includes(state.search.toLocaleLowerCase('ru')));
@@ -180,13 +198,13 @@ function renderStudent(){
       const chosen=old?.id===g.id;
       const conflicts=chosen?[]:conflicting(st.id,g,old?.id);
       const reason=conflicts.length?'Пересечение: '+conflicts.map(x=>subject(x.subject_id)).join(', '):'';
-      const disabled=locked||conflicts.length>0;
+      const disabled=readOnly||conflicts.length>0;
       return `<div class="group-row ${chosen?'selected':disabled?'disabled':''}"><div class="group-info"><span class="group-title">${esc(g.group_name)}</span><div class="slot-chips">${groupSlots(g.id).map(s=>`<span class="slot-pill">${esc(slotLabel(s))}</span>`).join('')}</div>${reason?`<p class="group-reason">${esc(reason)}</p>`:''}</div><button class="btn ${chosen?'ghost':'outline'} mini" data-select-group="${esc(g.id)}" ${disabled?'disabled':''}>${chosen?'✓ Убрать':old?'Сменить':'Выбрать'}</button></div>`;
     }).join('')}</div></div>`;
   }).join('')||'<div class="offer-empty">Для вашей параллели ещё не созданы занятия.</div>';
 }
 async function selectGroup(groupId){
-  const st=state.myStudent, g=group(groupId);if(!g||!st||st.confirmed_at)return;
+  const st=state.myStudent, g=group(groupId);if(!g||!st||st.confirmed_at||selectionDeadlinePassed())return;
   const old=selectedRegular(st.id).find(x=>x.subject_id===g.subject_id);
   await operation(async()=>{
     let response;
@@ -197,7 +215,7 @@ async function selectGroup(groupId){
   });
 }
 async function changeOffer(groupId,status){
-  const st=state.myStudent;if(!st||st.confirmed_at)return;
+  const st=state.myStudent;if(!st||st.confirmed_at||selectionDeadlinePassed())return;
   await operation(async()=>{
     const {error}=await state.client.from('olympiad_offers').update({status}).eq('student_id',st.id).eq('group_id',groupId);
     if(error)throw error;
@@ -229,7 +247,45 @@ async function studentAccountAction(type,id){
     await operation(async()=>{await accountsApi('set_active',{type:'student',id,enabled});});
   }
 }
+function suggestedSchoolYear(){
+  // После 1 сентября предлагаем ближайший следующий учебный год.
+  const now=new Date();
+  return Math.min(2100,now.getFullYear() + (now.getMonth()>=8?1:0));
+}
+function renderYearSettings(){
+  const select=$('yearStart'),deadline=$('yearDeadline'),status=$('yearSettingsStatus');
+  if(!select||!deadline||!status)return;
+  const saved=state.yearSettings,year=saved?.year_start ?? suggestedSchoolYear();
+  select.innerHTML=Array.from({length:7},(_,i)=>suggestedSchoolYear()-1+i)
+    .filter(y=>y>=2025&&y<=2100).map(y=>`<option value="${y}">${y}/${y+1}</option>`).join('');
+  if(![...select.options].some(x=>Number(x.value)===year)){
+    select.insertAdjacentHTML('beforeend',`<option value="${year}">${year}/${year+1}</option>`);
+  }
+  select.value=String(year);
+  deadline.min=`${year}-01-01`;
+  deadline.max=`${year+1}-12-31`;
+  deadline.value=saved?.selection_deadline ?? `${year}-08-31`;
+  status.textContent=state.yearSettingsError
+    ? `Настройки пока недоступны: ${state.yearSettingsError}. Сначала выполните SQL-файл.`
+    : saved ? `Сохранено для филиала «${state.branch.name}»: ${year}/${year+1}, срок до ${saved.selection_deadline}.`
+            : 'Для этого филиала учебный год ещё не задан.';
+  $('yearSettingsForm').querySelector('button[type="submit"]').disabled=Boolean(state.yearSettingsError);
+}
+async function saveYearSettings(event){
+  event.preventDefault();
+  const year=Number($('yearStart').value),deadline=$('yearDeadline').value;
+  if(!Number.isInteger(year)||year<2025||year>2100||deadline<`${year}-01-01`||deadline>`${year+1}-12-31`){
+    notice('Срок должен относиться к выбранному учебному году или следующему календарному году.',true);return;
+  }
+  if(deadline<todayMoscowIso() && !window.confirm('Дата уже прошла. Ученики этого филиала сразу потеряют возможность выбирать допы, отвечать на предложения олимпиад и подтверждать выбор. Сохранить?'))return;
+  await operation(async()=>{
+    const {error}=await state.client.from('branch_year_settings')
+      .upsert({branch_id:state.branch.id,year_start:year,selection_deadline:deadline},{onConflict:'branch_id'});
+    if(error)throw error;
+  },event.submitter);
+}
 function renderAdmin(){
+  renderYearSettings();
   $('adminGrade').value=String(state.grade);
   document.querySelectorAll('[data-panel-view]').forEach(node=>node.hidden=node.dataset.panelView!==state.panel);
   document.querySelectorAll('[data-panel]').forEach(b=>b.classList.toggle('active',b.dataset.panel===state.panel));
@@ -303,6 +359,7 @@ async function unlock(id){
   await operation(async()=>{const {error}=await state.client.from('students').update({confirmed_at:null}).eq('id',id);if(error)throw error;});
 }
 async function confirmChoice(){
+  if(selectionDeadlinePassed()){notice('Срок выбора завершён. Обратитесь к методологу.',true);return;}
   if(!window.confirm('Подтвердить расписание? После этого изменить его сможет только методолог.'))return;
   await operation(async()=>{const {error}=await state.client.rpc('confirm_student_choice');if(error)throw error;},$('confirmSelection'));
 }
@@ -314,6 +371,13 @@ $('adminGrade').addEventListener('change',event=>{state.grade=Number(event.targe
 document.querySelectorAll('[data-panel]').forEach(button=>button.addEventListener('click',()=>{state.panel=button.dataset.panel;renderAdmin();}));
 document.querySelectorAll('[data-report]').forEach(button=>button.addEventListener('click',()=>{state.report=button.dataset.report;document.querySelectorAll('[data-report]').forEach(b=>b.classList.toggle('active',b===button));renderSummary();}));
 // Создание ученика V7 доступно только в accounts.html через Edge Function. ФИО не отправляются в students.
+$('yearStart').addEventListener('change',e=>{
+  const year=Number(e.target.value);
+  $('yearDeadline').min=`${year}-01-01`;
+  $('yearDeadline').max=`${year+1}-12-31`;
+  $('yearDeadline').value=`${year}-08-31`;
+});
+$('yearSettingsForm').addEventListener('submit',saveYearSettings);
 $('subjectForm').addEventListener('submit',saveSubject);
 $('groupForm').addEventListener('submit',saveGroup);
 $('offerForm').addEventListener('submit',saveOffers);
