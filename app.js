@@ -1,10 +1,11 @@
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import {installBulkImport} from './bulk-import-ui.js';
+import {SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY} from './supabase-config.js';
 
 const $ = id => document.getElementById(id);
 const esc = x => String(x ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const days = ['','ПН','ВТ','СР','ЧТ','ПТ'];
-const configKey = 'vybor_dopov_supabase_v6'; // сохраняем подключение V6
+// Подключение задано сайтом; пользователю нужны только учётные данные.
 const state = {
   client:null,user:null,profile:null,branch:null,myStudent:null,grade:2,
   students:[],studentAccounts:[],subjects:[],groups:[],sessions:[],slots:[],offers:[],choices:[],
@@ -34,11 +35,8 @@ function createConfigClient(url,key){
   return createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 }
 async function restore(){
-  const old=localStorage.getItem(configKey);if(!old)return;
   try{
-    const {url,key}=JSON.parse(old);
-    $('projectUrl').value=url; $('publishableKey').value=key;
-    state.client=createConfigClient(url,key);
+    state.client=createConfigClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
     const {data,error}=await state.client.auth.getUser();
     if(error || !data?.user)return;
     state.user=data.user;
@@ -49,8 +47,7 @@ async function login(event){
   event.preventDefault();
   const btn=$('loginButton');btn.disabled=true;
   try{
-    const url=$('projectUrl').value.trim().replace(/\/+$/,''),key=$('publishableKey').value.trim();
-    state.client=createConfigClient(url,key);
+    state.client=createConfigClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
     let data,error;
     if($('loginMode').value==='student'){
       const response=await state.client.functions.invoke('school-accounts', {body:{action:'login_student',login:$('username').value.trim(),password:$('password').value}});
@@ -63,7 +60,6 @@ async function login(event){
       data=response.data;error=response.error;
     }
     $('password').value='';if(error)throw error;
-    localStorage.setItem(configKey,JSON.stringify({url,key}));
     state.user=data.user;
     await openWorkspace();notice('Вход выполнен.');
   }catch(err){notice('Не удалось войти: '+friendly(err),true);}
@@ -86,7 +82,7 @@ async function openWorkspace(){
   const {data:profile,error:pError}=await state.client.from('profiles').select('role,branch_id,is_active').eq('user_id',state.user.id).single();
   if(pError)throw new Error('Нет привязанного профиля. '+pError.message);
   if(profile.is_active===false)throw new Error('Учётная запись заблокирована.');
-  if(profile.role==='system_admin'){localStorage.setItem(configKey,JSON.stringify({url:$('projectUrl').value.trim(),key:$('publishableKey').value.trim()}));window.location.href='accounts.html';return;}
+  if(profile.role==='system_admin'){window.location.href='accounts.html';return;}
   if(!['methodologist','student'].includes(profile.role))throw new Error('Для этой роли кабинет ещё не создан.');
   state.profile=profile;
   const {data:branch,error:bError}=await state.client.from('branches').select('id,name').eq('id',profile.branch_id).single();
