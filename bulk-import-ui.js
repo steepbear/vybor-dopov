@@ -14,6 +14,11 @@ export function installBulkImport({state,notice,friendly,accountsApi,reload}){
   const caption=$('importGradeCaption');if(!caption)return;
   caption.textContent=state.grade;
   $('importBranchName').textContent=state.branch?.name||'—';
+  const file=$('importStudentsFile').files?.[0];
+  $('importSelectedFilename').textContent=file?file.name:'Файл не выбран';
+  $('importSelectedFilename').title=file?file.name:'';
+  $('importChooseFile').classList.toggle('is-disabled',working);
+  $('importChooseFile').setAttribute('aria-disabled',String(working));
   $('importStudentsTableWrap').hidden=!rows.length;
   $('importStudentsBody').innerHTML=rows.map(r=>'<tr><td>'+r.line+'</td><td>'+esc(r.grade?r.grade+r.letter:r.rawClass)+'</td><td>'+esc(r.surname)+'</td><td>'+esc(r.name)+'</td><td><code>'+esc(r.login||'—')+'</code></td><td><code>'+esc(r.password||'—')+'</code></td><td>'+esc(status(r))+'</td></tr>').join('');
   const count=k=>rows.filter(r=>r.status===k).length;
