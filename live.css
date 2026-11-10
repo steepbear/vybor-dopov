@@ -20,3 +20,13 @@
 
 /* V8: истёк срок выбора */
 .status-label.closed{color:#b93b3b;background:#fff1f0;border-color:#f1c5be}
+
+/* V8: массовая загрузка Excel */
+.import-controls{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px;margin:14px 0}
+.import-controls .field-wrap{flex:1 1 290px;max-width:520px}
+.import-controls input[type=file]{width:100%;padding:10px;background:#f8faff;border:1px solid #d9e1f0;border-radius:9px}
+.import-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:2px}
+.import-warning{color:#895e20}
+.import-table-wrap{max-height:490px;overflow:auto;margin-top:14px}
+.import-table-wrap .data-table{min-width:760px}
+.import-table-wrap .data-table code{font-size:12px;white-space:nowrap;color:#163d87}
