@@ -1,4 +1,5 @@
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import {installBulkImport} from './bulk-import-ui.js';
 
 const $ = id => document.getElementById(id);
 const esc = x => String(x ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -286,6 +287,7 @@ async function saveYearSettings(event){
 }
 function renderAdmin(){
   renderYearSettings();
+  bulkImport?.render();
   $('adminGrade').value=String(state.grade);
   document.querySelectorAll('[data-panel-view]').forEach(node=>node.hidden=node.dataset.panelView!==state.panel);
   document.querySelectorAll('[data-panel]').forEach(b=>b.classList.toggle('active',b.dataset.panel===state.panel));
@@ -367,7 +369,7 @@ $('loginForm').addEventListener('submit',login);
 $('loginMode').addEventListener('change',e=>{const isStudent=e.target.value==='student';$('emailField').hidden=isStudent;$('usernameField').hidden=!isStudent;$('email').required=!isStudent;$('username').required=isStudent;});
 $('logout').addEventListener('click',logout);
 $('refresh').addEventListener('click',()=>operation(async()=>{},$('refresh')));
-$('adminGrade').addEventListener('change',event=>{state.grade=Number(event.target.value);renderAdmin();});
+$('adminGrade').addEventListener('change',event=>{if(!bulkImport.clear()){event.target.value=String(state.grade);return;}state.grade=Number(event.target.value);renderAdmin();});
 document.querySelectorAll('[data-panel]').forEach(button=>button.addEventListener('click',()=>{state.panel=button.dataset.panel;renderAdmin();}));
 document.querySelectorAll('[data-report]').forEach(button=>button.addEventListener('click',()=>{state.report=button.dataset.report;document.querySelectorAll('[data-report]').forEach(b=>b.classList.toggle('active',b===button));renderSummary();}));
 // Создание ученика V7 доступно только в accounts.html через Edge Function. ФИО не отправляются в students.
@@ -395,6 +397,7 @@ $('studentBody').addEventListener('click',e=>{
   const btn=e.target.closest('[data-unlock]');if(btn)unlock(btn.dataset.unlock);
   const cp=e.target.closest('[data-copy-id]');if(cp)navigator.clipboard.writeText(cp.dataset.copyId).then(()=>notice('ID ученика скопирован.')).catch(()=>notice('Не удалось скопировать ID.',true));
 });
+const bulkImport=installBulkImport({state,notice,friendly,accountsApi,reload});
 restore();
 
 $('closeStudentPassword').addEventListener('click',()=>{$('newStudentPassword').textContent='';$('studentPasswordDialog').close();});
