@@ -33,13 +33,19 @@
 <div id="metrics" class="metrics"></div><section class="card admin-section"><div class="section-heading"><div class="section-icon blue">≡</div><div><h2>Ученики без подтверждения</h2><p>Здесь отображаются только ученики выбранной параллели</p></div></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Ученик</th><th>Класс</th><th>Состояние</th></tr></thead><tbody id="unconfirmedBody"></tbody></table></div></section><section class="card admin-section"><div class="section-heading"><div class="section-icon purple">▤</div><div><h2>Статистика подтверждённых записей</h2><p>По предметам, группам и классам</p></div></div><div class="report-switch"><button class="report-tab active" data-report="subjects">По предметам</button><button class="report-tab" data-report="groups">По группам</button><button class="report-tab" data-report="classes">По классам</button></div><div class="table-scroll"><table class="data-table"><thead id="summaryHead"></thead><tbody id="summaryBody"></tbody></table></div></section></div>
 <div data-panel-view="students" hidden>
 <section class="card admin-section" id="excelImportSection">
- <div class="section-heading"><div class="section-icon blue">⇧</div><div><h2>Массовая загрузка учеников из Excel</h2><p>Один файл — одна параллель. Филиал «<span id="importBranchName"></span>»</p></div></div>
- <div class="import-controls">
-  <div class="field-wrap"><label for="importStudentsFile">Excel (.xlsx), параллель <strong id="importGradeCaption">1</strong></label><input type="file" id="importStudentsFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></div>
-  <div class="import-actions"><button type="button" class="btn primary" id="importStudentsStart" disabled>Создать учётные записи</button><button type="button" class="btn outline" id="importStudentsExport" hidden>Сохранить логины и пароли (CSV)</button></div>
+ <div class="section-heading"><div class="section-icon blue" aria-hidden="true">↓</div><div><h2>Массовая загрузка учеников из Excel</h2><p>Один файл — одна параллель · Филиал «<span id="importBranchName"></span>»</p></div></div>
+ <div class="import-toolbar">
+  <div class="import-toolbar-caption">EXCEL (.XLSX) · ПАРАЛЛЕЛЬ <strong id="importGradeCaption">1</strong></div>
+  <div class="import-toolbar-row">
+   <input type="file" id="importStudentsFile" class="import-file-input" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-label="Выбрать файл Excel со списком учеников">
+   <label for="importStudentsFile" class="btn outline import-pick-btn" id="importChooseFile">Выберите файл</label>
+   <button type="button" class="btn primary import-create-btn" id="importStudentsStart" disabled>Создать учётные записи</button>
+   <span class="import-filename" id="importSelectedFilename" role="status" aria-live="polite">Файл не выбран</span>
+  </div>
+  <button type="button" class="btn outline import-export-btn" id="importStudentsExport" hidden>Сохранить логины и пароли (CSV)</button>
  </div>
- <p class="microcopy">Столбцы Excel: <strong>Класс, Фамилия, Имя</strong>. Например: 1А, Иванов, Иван. ФИО обрабатываются в браузере, в Supabase отправляются техническая основа логина и класс.</p>
- <p class="microcopy import-warning"><strong>Важно:</strong> пароль показывается только при создании. Сохраните результаты перед закрытием страницы.</p>
+ <p class="microcopy">Файл должен содержать колонки <strong>Класс, Фамилия, Имя</strong> (например: 1А, Иванов, Иван). ФИО не передаются в Supabase.</p>
+ <p class="microcopy import-warning">Пароли показываются только при создании. Сохраните таблицу, прежде чем закрывать страницу.</p>
  <p id="importStudentsSummary" class="microcopy" role="status" aria-live="polite">Выберите XLSX-файл для предварительной проверки.</p>
  <div id="importStudentsTableWrap" class="table-scroll import-table-wrap" hidden>
   <table class="data-table"><thead><tr><th>№</th><th>Класс</th><th>Фамилия</th><th>Имя</th><th>Логин</th><th>Пароль</th><th>Результат</th></tr></thead><tbody id="importStudentsBody"></tbody></table>
