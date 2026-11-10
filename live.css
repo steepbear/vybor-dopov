@@ -21,12 +21,20 @@
 /* V8: истёк срок выбора */
 .status-label.closed{color:#b93b3b;background:#fff1f0;border-color:#f1c5be}
 
-/* V8: массовая загрузка Excel */
-.import-controls{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px;margin:14px 0}
-.import-controls .field-wrap{flex:1 1 290px;max-width:520px}
-.import-controls input[type=file]{width:100%;padding:10px;background:#f8faff;border:1px solid #d9e1f0;border-radius:9px}
-.import-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:2px}
-.import-warning{color:#895e20}
+/* V8: компактная панель импорта Excel */
+.import-toolbar{margin:18px 0 15px}
+.import-toolbar-caption{font-size:11px;font-weight:750;color:#7182a0;letter-spacing:.035em;margin:0 0 9px}
+.import-toolbar-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.import-toolbar .btn{margin-top:0;display:inline-flex;align-items:center;justify-content:center;min-height:42px}
+.import-pick-btn,.import-create-btn{flex:0 0 auto}
+.import-pick-btn{cursor:pointer;user-select:none}
+.import-pick-btn:focus-visible,.import-file-input:focus-visible+.import-pick-btn{outline:2px solid #4167e4;outline-offset:3px}
+.import-pick-btn.is-disabled{opacity:.55;cursor:not-allowed;pointer-events:none}
+.import-file-input{position:absolute;width:1px;height:1px;padding:0;margin:0;opacity:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.import-filename{min-width:0;max-width:min(100%,370px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#8693aa;font-size:12px;padding:0 5px}
+.import-toolbar .import-export-btn{margin-top:12px}
+.import-warning{color:#895e20;margin-top:3px}
 .import-table-wrap{max-height:490px;overflow:auto;margin-top:14px}
 .import-table-wrap .data-table{min-width:760px}
 .import-table-wrap .data-table code{font-size:12px;white-space:nowrap;color:#163d87}
+@media(max-width:600px){.import-toolbar-row{gap:8px}.import-toolbar .btn{white-space:normal;text-align:center}.import-filename{flex:1 0 100%;padding:3px 0}.import-create-btn{flex:1 1 185px}}
