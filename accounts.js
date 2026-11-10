@@ -1,7 +1,7 @@
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import {SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY} from './supabase-config.js';
 const $=id=>document.getElementById(id);
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const configKey='vybor_dopov_supabase_v6';
 let client,role,branchId,known=[],localPairs=[],credentials=null;
 function toast(message,error=false){const e=$('feedback');e.hidden=false;e.textContent=message;e.className='live-message '+(error?'error':'ok');e.scrollIntoView({block:'nearest',behavior:'smooth'});}
 async function api(action,params={}){
@@ -25,8 +25,7 @@ function renderAdmin(data){known=data.branches;
 function renderStudents(data){$('studentRows').innerHTML=data.students.length?data.students.map(s=>`<tr><td><strong>${esc(s.login||'Без учётной записи (V6)')}</strong></td><td>${s.grade}</td><td>${esc(s.class_letter)}</td><td>${!s.has_account?'Нет входа':s.is_active?'Активен':'Заблокирован'}</td><td>${s.confirmed?'Подтверждено':'Не подтверждено'}</td><td>${s.has_account?`<div class="account-actions"><button class="btn outline mini" data-reset="student" data-id="${esc(s.id)}" data-email="${esc(s.login||'')}" >Новый пароль</button><button class="btn ghost mini" data-toggle="student" data-id="${esc(s.id)}" data-enabled="${!s.is_active}">${s.is_active?'Блокировать':'Разблокировать'}</button></div>`:`<button class="btn outline mini" data-provision="${esc(s.id)}">Выдать доступ</button>`}</td></tr>`).join(''):'<tr><td colspan="6">Учеников пока нет</td></tr>';
 }
 async function refresh(){const data=await api('list');if(role==='system_admin')renderAdmin(data);else renderStudents(data);}
-async function start(){const old=localStorage.getItem(configKey);if(!old)throw new Error('Сначала настройте подключение на главной странице.');
- const {url,key}=JSON.parse(old);client=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true}});
+async function start(){client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
  const auth=await client.auth.getUser();if(!auth.data?.user)throw new Error('Сначала войдите на главной странице.');
  const p=await client.from('profiles').select('role,branch_id,is_active').eq('user_id',auth.data.user.id).single();if(p.error)throw p.error;if(p.data.is_active===false)throw new Error('Учётная запись заблокирована.');
  role=p.data.role;branchId=p.data.branch_id;if(!['system_admin','methodologist'].includes(role))throw new Error('Для этой роли нет панели управления доступом.');
