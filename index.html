@@ -40,11 +40,15 @@
    <button type="button" class="btn primary import-create-btn" id="importStudentsStart" disabled>Создать учётные записи</button>
    <span class="import-filename" id="importSelectedFilename" role="status" aria-live="polite">Файл не выбран</span>
   </div>
-  <button type="button" class="btn outline import-export-btn" id="importStudentsExport" hidden>Сохранить логины и пароли (CSV)</button>
+  
  </div>
  <p class="microcopy">Файл должен содержать колонки <strong>Класс, Фамилия, Имя</strong> (например: 1А, Иванов, Иван). ФИО не передаются в Supabase.</p>
  <p class="microcopy import-warning">Пароли показываются только при создании. Сохраните таблицу, прежде чем закрывать страницу.</p>
  <p id="importStudentsSummary" class="microcopy" role="status" aria-live="polite">Выберите XLSX-файл для предварительной проверки.</p>
+ <div class="import-result-actions" id="importResultActions" hidden>
+  <div class="import-result-text"><strong>Учётные записи созданы</strong><span id="importExportCount">Сохраните выданные логины и пароли в Excel, прежде чем закрывать страницу.</span></div>
+  <button type="button" class="btn primary" id="importStudentsExport" hidden>Скачать Excel с логинами и паролями</button>
+ </div>
  <div id="importStudentsTableWrap" class="table-scroll import-table-wrap" hidden>
   <table class="data-table"><thead><tr><th>№</th><th>Класс</th><th>Фамилия</th><th>Имя</th><th>Логин</th><th>Пароль</th><th>Результат</th></tr></thead><tbody id="importStudentsBody"></tbody></table>
  </div>
