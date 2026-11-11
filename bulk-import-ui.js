@@ -1,4 +1,5 @@
 import {readStudentsXlsx} from './xlsx-import.js';
+import {downloadCreatedStudentsXlsx} from './xlsx-export.js';
 
 // Browser-only names; only transliterated identifiers and class reach the server.
 export function installBulkImport({state,notice,friendly,accountsApi,reload}){
@@ -25,7 +26,10 @@ export function installBulkImport({state,notice,friendly,accountsApi,reload}){
   $('importStudentsSummary').textContent=rows.length?'Всего: '+rows.length+' · Создано: '+count('created')+' · Уже есть: '+count('exists')+' · Ошибки: '+(count('invalid')+count('error')+count('uncertain'))+' · Ожидают: '+count('pending'):'Выберите XLSX-файл для предварительной проверки.';
   $('importStudentsStart').disabled=working||!count('pending')||!!count('invalid');
   $('importStudentsStart').textContent=working?'Создание учётных записей…':count('created')?'Продолжить загрузку':'Создать учётные записи';
-  $('importStudentsExport').hidden=!rows.some(r=>r.password);
+  const created=rows.filter(r=>r.status==='created'&&r.login&&r.password);
+  $('importResultActions').hidden=created.length===0;
+  $('importExportCount').textContent='Создано '+created.length+' · сохраните логины и пароли, прежде чем закрывать страницу.';
+  $('importStudentsExport').hidden=created.length===0;
   $('importStudentsFile').disabled=working;
   $('adminGrade').disabled=working;
  }
@@ -84,15 +88,19 @@ export function installBulkImport({state,notice,friendly,accountsApi,reload}){
    if(!stopped)notice('Импорт завершён. Сохраните логины и пароли.');
   }finally{working=false;render();}
  }
- function csvValue(v){let s=String(v??'');if(/^\s*[=+@\-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
- function exportCSV(){
-  const table=[['№','Класс','Фамилия','Имя','Логин','Пароль','Результат'],...rows.map(r=>[r.line,r.grade?r.grade+r.letter:r.rawClass,r.surname,r.name,r.login,r.password,status(r)])];
-  const data='\uFEFF'+table.map(row=>row.map(csvValue).join(';')).join('\r\n');
-  const url=URL.createObjectURL(new Blob([data],{type:'text/csv;charset=utf-8'}));
-  const a=document.createElement('a');a.href=url;a.download='Ученики_'+state.grade+'_логины_и_пароли.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+ function exportExcel(){
+  const created=rows.filter(r=>r.status==='created'&&r.login&&r.password);
+  if(!created.length){notice('Нет новых учётных записей для выгрузки.',true);return;}
+  try{
+    const filename='Ученики_'+state.grade+'_логины_и_пароли.xlsx';
+    const count=downloadCreatedStudentsXlsx(created.map(r=>({
+      className:r.grade+r.letter,surname:r.surname,name:r.name,login:r.login,password:r.password
+    })),filename);
+    notice('Скачан Excel с '+count+' новыми учётными записями. Храните файл в защищённом месте.');
+  }catch(e){notice('Не удалось сформировать Excel: '+friendly(e),true);}
  }
  $('importStudentsFile').addEventListener('change',readFile);
  $('importStudentsStart').addEventListener('click',run);
- $('importStudentsExport').addEventListener('click',exportCSV);
+ $('importStudentsExport').addEventListener('click',exportExcel);
  return {render,clear(){if(rows.some(r=>r.password)&&!confirm('Пароли из таблицы исчезнут. Вы сохранили их?'))return false;rows=[];$('importStudentsFile').value='';render();return true;}};
 }
