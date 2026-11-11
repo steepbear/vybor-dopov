@@ -38,3 +38,11 @@
 .import-table-wrap .data-table{min-width:760px}
 .import-table-wrap .data-table code{font-size:12px;white-space:nowrap;color:#163d87}
 @media(max-width:600px){.import-toolbar-row{gap:8px}.import-toolbar .btn{white-space:normal;text-align:center}.import-filename{flex:1 0 100%;padding:3px 0}.import-create-btn{flex:1 1 185px}}
+
+/* Экспорт учётных данных сразу под результатами импорта */
+.import-result-actions{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;margin:16px 0 10px;padding:15px 17px;background:#eef4ff;border:1px solid #d7e3ff;border-radius:12px}
+.import-result-text{display:grid;gap:3px;min-width:230px;flex:1}
+.import-result-text strong{color:#1b3b7e;font-size:13px}
+.import-result-text span{color:#647899;font-size:12px}
+.import-result-actions .btn{margin-top:0;white-space:normal}
+@media(max-width:620px){.import-result-actions .btn{width:100%}}
