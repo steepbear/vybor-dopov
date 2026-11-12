@@ -24,8 +24,10 @@
 .registry-table{min-width:930px}
 .registry-table td{vertical-align:middle}
 .registry-table input{width:100%;max-width:200px;min-width:95px;min-height:35px;border-radius:7px;border:1px solid #dae2ee;padding:7px 9px;background:#fff}
-.registry-table input.registry-letter{min-width:45px;width:56px}
-.registry-grade{font-weight:750;color:#2c4870}
+.registry-class-fields{display:flex;align-items:center;gap:9px;white-space:nowrap}
+.registry-table .registry-class-fields input{flex:none;box-sizing:border-box;text-align:center}
+.registry-table input.registry-grade{min-width:46px;width:46px;background:#f0f3f8;color:#62728a;border-color:#e0e6ef;cursor:default;font-weight:700}
+.registry-table input.registry-letter{min-width:55px;width:55px}
 .registry-table code{font-size:11px;color:#5c6c83;white-space:nowrap}
 .registry-table small{font-size:11px;color:#71809a;white-space:nowrap}
 .registry-table .registry-problem{background:#fff9f2}
