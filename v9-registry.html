@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Реестр учеников · Выбор допов V9</title>
+<link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./live.css">
+<link rel="stylesheet" href="./v9-registry.css">
+<script type="module" src="./v9-registry.js"></script>
+</head>
+<body>
+<header class="topbar"><div class="shell topbar-content">
+ <a class="brand" href="./index.html"><span class="logo">✦</span><span class="brand-name">Выбор <strong>допов</strong><small>V9 · локальный реестр учеников</small></span></a>
+ <div class="top-user"><span id="branchTitle">Проверяем доступ…</span><a class="btn outline mini" href="./index.html">Вернуться в кабинет</a></div>
+</div></header>
+<main class="shell registry-shell">
+ <div class="registry-heading"><div><span class="overline">V9 · Первый этап</span><h1>Реестр учеников</h1><p>Создание, открытие и редактирование школьных файлов <code>.vdop</code>. ФИО обрабатываются только в вашем браузере.</p></div><span class="registry-tag">Локальный режим</span></div>
+ <div id="registryNotice" class="live-message" role="status" aria-live="polite" hidden></div>
+ <section id="registryWorkspace" hidden>
+  <div class="card registry-card">
+   <div class="registry-toolbar">
+    <div class="registry-field"><label for="registryYear">Учебный год</label><select id="registryYear"></select></div>
+    <div class="registry-field"><label for="registryGrade">Параллель</label><select id="registryGrade"><option value="1">1-я</option><option value="2">2-я</option><option value="3">3-я</option><option value="4">4-я</option></select></div>
+    <div class="registry-field registry-branch"><span>Филиал</span><strong id="registryBranchName">—</strong></div>
+   </div>
+   <div class="registry-actions">
+    <input id="registryExcel" class="registry-hidden-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+    <label class="btn outline" for="registryExcel">Создать из Excel</label>
+    <input id="registryOpen" class="registry-hidden-file" type="file" accept=".vdop">
+    <label class="btn outline" for="registryOpen">Открыть .vdop</label>
+    <button class="btn outline" id="registryNew" type="button">Новый пустой реестр</button>
+   </div>
+   <p class="registry-help">Excel: столбцы «Класс», «Фамилия», «Имя». Один файл — одна параллель. В открываемом <code>.vdop</code> филиал должен совпадать с текущим.</p>
+  </div>
+  <div id="registryEditor" class="card registry-card" hidden>
+   <div class="registry-editor-head"><div><h2>Ученики</h2><p id="registrySummary">Нет строк</p></div><span id="registryDirty" class="registry-dirty" hidden>Есть несохранённые изменения</span></div>
+   <div class="registry-table-wrap">
+    <table class="data-table registry-table">
+    <thead><tr><th>№</th><th>Класс</th><th>Фамилия</th><th>Имя</th><th>GUID</th><th>Логин</th><th>Проверка</th><th></th></tr></thead>
+    <tbody id="registryBody"></tbody>
+    </table>
+   </div>
+   <div class="registry-footer">
+    <button type="button" class="btn outline" id="registryAdd">+ Добавить ученика</button>
+    <button type="button" class="btn primary" id="registrySave">Сохранить .vdop</button>
+   </div>
+   <p class="registry-help"><strong>Важно:</strong> это пока локальный редактор. Учётные записи в Supabase не создаются. Пароли не сохраняются в <code>.vdop</code>. Файл содержит персональные данные и должен храниться в защищённом месте.</p>
+  </div>
+ </section>
+ <section id="registryNoAccess" class="card registry-card" hidden><h2>Нужен вход методолога</h2><p id="registryAccessMessage">Войдите в кабинет методолога, затем откройте реестр.</p><a class="btn primary" href="./index.html">Войти в систему</a></section>
+</main>
+</body></html>

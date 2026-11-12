@@ -1,0 +1,36 @@
+
+.registry-shell{max-width:1260px;padding-top:30px;padding-bottom:70px}
+.registry-heading{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:20px}
+.registry-heading h1{font-size:27px;line-height:1.25;margin:6px 0}
+.registry-heading p{font-size:13px;color:#6b7a95;max-width:760px;margin:8px 0}
+.registry-tag{font-size:11px;font-weight:750;color:#285ca3;background:#eaf2ff;border:1px solid #cde0ff;border-radius:20px;padding:7px 12px;white-space:nowrap}
+.registry-card{padding:22px;margin-bottom:18px}
+.registry-toolbar{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.registry-field{min-width:175px;display:grid;gap:5px}
+.registry-field label,.registry-field>span{font-size:12px;font-weight:700;color:#74839c}
+.registry-field select{min-height:40px;border-radius:9px;border:1px solid #d4deee;background:#fff;padding:8px}
+.registry-branch{padding:0 5px 7px;min-width:190px}
+.registry-branch strong{font-size:14px;color:#1f385b}
+.registry-actions{display:flex;flex-wrap:wrap;gap:10px;margin:17px 0 8px}
+.registry-actions .btn,.registry-footer .btn{margin-top:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.registry-hidden-file{position:absolute;clip:rect(0,0,0,0);height:1px;width:1px;opacity:0}
+.registry-hidden-file:focus-visible+.btn{outline:2px solid #4167e4;outline-offset:2px}
+.registry-help{font-size:12px;color:#637592;margin:10px 0 0}
+.registry-editor-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:15px}
+.registry-editor-head h2{font-size:18px;margin:0}
+.registry-editor-head p{font-size:12px;color:#7c8da4;margin:5px 0 0}
+.registry-dirty{font-size:11px;color:#9a611e;background:#fff5e5;padding:7px 10px;border-radius:8px}
+.registry-table-wrap{overflow:auto;max-height:580px}
+.registry-table{min-width:930px}
+.registry-table td{vertical-align:middle}
+.registry-table input{width:100%;max-width:200px;min-width:95px;min-height:35px;border-radius:7px;border:1px solid #dae2ee;padding:7px 9px;background:#fff}
+.registry-table input.registry-letter{min-width:45px;width:56px}
+.registry-grade{font-weight:750;color:#2c4870}
+.registry-table code{font-size:11px;color:#5c6c83;white-space:nowrap}
+.registry-table small{font-size:11px;color:#71809a;white-space:nowrap}
+.registry-table .registry-problem{background:#fff9f2}
+.registry-error{font-size:11px;color:#b44934;max-width:160px}
+.registry-valid{font-size:11px;color:#31805c}
+.registry-footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:17px}
+.registry-table .btn.mini{font-size:15px}
+@media(max-width:700px){.registry-shell{padding:15px}.registry-heading{flex-direction:column}.registry-card{padding:15px}.registry-toolbar{display:grid;grid-template-columns:1fr 1fr}.registry-branch{grid-column:1/-1}.registry-actions{display:grid;grid-template-columns:1fr 1fr}.registry-actions .btn{white-space:normal;text-align:center}.registry-footer{flex-direction:column}.registry-footer .btn{width:100%}}

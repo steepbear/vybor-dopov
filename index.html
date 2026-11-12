@@ -30,6 +30,12 @@
 </section>
 <div id="metrics" class="metrics"></div><section class="card admin-section"><div class="section-heading"><div class="section-icon blue">≡</div><div><h2>Ученики без подтверждения</h2><p>Здесь отображаются только ученики выбранной параллели</p></div></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Ученик</th><th>Класс</th><th>Состояние</th></tr></thead><tbody id="unconfirmedBody"></tbody></table></div></section><section class="card admin-section"><div class="section-heading"><div class="section-icon purple">▤</div><div><h2>Статистика подтверждённых записей</h2><p>По предметам, группам и классам</p></div></div><div class="report-switch"><button class="report-tab active" data-report="subjects">По предметам</button><button class="report-tab" data-report="groups">По группам</button><button class="report-tab" data-report="classes">По классам</button></div><div class="table-scroll"><table class="data-table"><thead id="summaryHead"></thead><tbody id="summaryBody"></tbody></table></div></section></div>
 <div data-panel-view="students" hidden>
+<section class="card admin-section" style="margin-bottom:18px">
+  <div class="section-heading"><div class="section-icon blue" aria-hidden="true">▣</div><div><h2>V9 · Реестр учеников (.vdop)</h2><p>Новый локальный редактор: создание из Excel, открытие, исправление, проверка дублей, GUID и сохранение файла</p></div></div>
+  <a class="btn primary" href="./v9-registry.html">Открыть редактор реестра</a>
+  <p class="microcopy" style="margin-top:10px">Этап 1 V9: работает с локальными файлами. Создание учётных записей через .vdop подключим после обновления модели базы.</p>
+</section>
+
 <section class="card admin-section" id="excelImportSection">
  <div class="section-heading"><div class="section-icon blue" aria-hidden="true">↓</div><div><h2>Массовая загрузка учеников из Excel</h2><p>Один файл — одна параллель · Филиал «<span id="importBranchName"></span>»</p></div></div>
  <div class="import-toolbar">
