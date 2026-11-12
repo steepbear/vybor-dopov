@@ -59,6 +59,7 @@ function validateRows(){
 }
 function render(){
  const editor=$('registryEditor');editor.hidden=!state.doc;
+ $('registryNew').textContent=state.doc?'Закрыть реестр / выбрать другой год':'Новый пустой реестр';
  if(!state.doc)return;
  selectedYearGrade();
  const problems=validateRows();
@@ -85,6 +86,14 @@ function installDoc(doc,rows,dirty){
 }
 function newRegistry(){
  if(!requireDiscard())return;
+ if(state.doc){
+  state.doc=null;state.rows=[];state.dirty=false;
+  $('registryYear').disabled=false;
+  $('registryGrade').disabled=false;
+  render();
+  feedback('Реестр закрыт. Выберите учебный год и параллель, затем создайте новый реестр или откройте файл.');
+  return;
+ }
  installDoc(createDoc(),[],true);
  feedback('Создан новый реестр. Добавьте учеников или загрузите список Excel.');
 }
