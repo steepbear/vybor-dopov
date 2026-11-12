@@ -59,7 +59,7 @@ function validateRows(){
 }
 function render(){
  const editor=$('registryEditor');editor.hidden=!state.doc;
- $('registryNew').textContent=state.doc?'Закрыть реестр / выбрать другой год':'Новый пустой реестр';
+ $('registryNew').textContent=state.doc?'Закрыть реестр':'Новый пустой реестр';
  if(!state.doc)return;
  selectedYearGrade();
  const problems=validateRows();
@@ -103,7 +103,7 @@ function parseClass(value){
 }
 async function importExcel(event){
  const file=event.target.files?.[0];event.target.value='';
- if(!file||!requireDiscard())return;
+ if(!file)return;
  try{
   if(!/\.xlsx$/i.test(file.name))throw Error('Нужен файл Excel с расширением .xlsx.');
   const sheet=await readStudentsXlsx(file);
@@ -229,6 +229,12 @@ async function start(){
  }
 }
 $('registryNew').addEventListener('click',newRegistry);
+$('registryExcelAction').addEventListener('click',()=>{
+ // Excel создаёт новый локальный реестр, а не пополняет текущий.
+ // Отклонение подтверждения или отмена выбора файла не меняют данные.
+ if(state.doc && !window.confirm('Текущие данные будут заменены данными из файла. Продолжить?'))return;
+ $('registryExcel').click();
+});
 $('registryExcel').addEventListener('change',importExcel);
 $('registryOpen').addEventListener('change',openVdop);
 $('registryAdd').addEventListener('click',addStudent);
