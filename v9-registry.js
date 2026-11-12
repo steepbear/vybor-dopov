@@ -71,7 +71,7 @@ function render(){
   const problem=problems.get(i),cls=state.doc.grade+(s.class_letter||'?');
   return '<tr data-row="'+i+'" class="'+(problem?'registry-problem':'')+'">'+
    '<td>'+(i+1)+'</td>'+
-   '<td><span class="registry-grade">'+state.doc.grade+'</span><input aria-label="Буква класса" maxlength="3" class="registry-letter" data-field="class_letter" value="'+esc(s.class_letter)+'"></td>'+
+   '<td><div class="registry-class-fields"><input aria-label="Параллель" class="registry-grade" value="'+state.doc.grade+'" readonly tabindex="-1" title="Параллель задаётся для всего реестра"><input aria-label="Буква класса" maxlength="3" class="registry-letter" data-field="class_letter" value="'+esc(s.class_letter)+'"></div></td>'+
    '<td><input aria-label="Фамилия" maxlength="60" data-field="surname" value="'+esc(s.surname)+'"></td>'+
    '<td><input aria-label="Имя" maxlength="60" data-field="name" value="'+esc(s.name)+'"></td>'+
    '<td><code title="'+esc(s.id)+'">'+esc(s.id.slice(0,8))+'…</code></td>'+
