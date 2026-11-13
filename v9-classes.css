@@ -1,0 +1,30 @@
+
+.v9-main{padding-top:26px;padding-bottom:64px}
+.v9-main .page-intro h1{font-size:28px;margin:7px 0}
+.v9-main .page-intro p{font-size:14px;color:#61728e}
+.v9-card{padding:22px;margin-bottom:18px}
+.v9-filter-line{display:flex;flex-wrap:wrap;align-items:end;gap:14px}
+.v9-filter-line .field-wrap{min-width:155px;max-width:260px;margin:0}
+.v9-filter-line .btn{min-height:42px}
+.v9-readonly{min-height:42px;padding:10px 12px;background:#f0f3fa;border:1px solid #dee5f0;border-radius:9px;font-size:13px}
+.v9-layout{display:grid;grid-template-columns:minmax(280px,35%) minmax(360px,1fr);gap:18px;align-items:start}
+.v9-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:18px}
+.v9-head h2{font-size:19px;margin:0 0 5px}
+.v9-head p{font-size:12px;color:#71809a;margin:0}
+.v9-create{display:flex;align-items:end;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.v9-create .field-wrap{max-width:135px;margin:0}
+.v9-create input{min-height:42px}
+.v9-create .btn{min-height:42px}
+.v9-list{display:grid;gap:8px}
+.v9-doc{padding:12px 14px;border:1px solid #dce4f1;border-radius:11px;background:#fff;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;color:#64758f;font-size:12px}
+.v9-doc.current{background:#eef4ff;border-color:#709de9;color:#1e478b}
+.v9-doc-name{font-size:16px;font-weight:750;color:#243b60}
+.v9-status{border-radius:20px;padding:6px 10px;font-size:11px;background:#f0f3fa;color:#566987;white-space:nowrap}
+.v9-status[data-status="active"]{background:#e5f7ec;color:#17774a}
+.v9-status[data-status="finished"]{background:#eff0f2;color:#55616f}
+.v9-status-controls{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px}
+.v9-enroll{display:flex;align-items:end;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.v9-enroll .field-wrap{flex:1;min-width:220px;margin:0}
+.v9-enroll .btn{min-height:42px}
+#v9Members td code{font-size:11px;overflow-wrap:anywhere}
+@media(max-width:850px){.v9-layout{grid-template-columns:1fr}.v9-main{padding-top:16px}.v9-card{padding:16px}.v9-filter-line .field-wrap{flex:1}.v9-enroll .btn{width:100%}}
