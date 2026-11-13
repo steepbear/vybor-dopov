@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Учебный год · Выбор допов V9</title>
+<link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./live.css"><link rel="stylesheet" href="./v9-classes.css">
+<script type="module" src="./v9-classes.js"></script></head>
+<body><header class="topbar"><div class="shell topbar-content"><a class="brand" href="./index.html"><span class="logo">✦</span><span class="brand-name">Выбор <strong>допов</strong><small>V9 · Учебный год</small></span></a>
+<div class="top-user"><span id="v9User">Проверка доступа…</span><a href="./index.html" class="btn outline mini">В кабинет</a></div></div></header>
+<main class="shell v9-main">
+<div class="page-intro"><div><div class="overline">V9 · Этап 2</div><h1>Учебный год</h1><p>Документы классов: учебный год, филиал, параллель, буква. Ученики закрепляются по постоянному GUID.</p></div></div>
+<div class="live-message" id="v9Message" role="status" aria-live="polite" hidden></div>
+<div id="v9NoAccess" class="card v9-card" hidden><h2>Необходим вход методолога</h2><p id="v9NoAccessText">Авторизуйтесь в кабинете методолога.</p><a href="./index.html" class="btn primary">Перейти ко входу</a></div>
+<div id="v9Workspace" hidden>
+<section class="card v9-card">
+<div class="v9-filter-line">
+<div class="field-wrap"><label for="v9Year">Учебный год</label><select id="v9Year"></select></div>
+<div class="field-wrap"><label for="v9Grade">Параллель</label><select id="v9Grade"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></div>
+<div class="field-wrap"><label>Филиал</label><div class="v9-readonly" id="v9Branch">—</div></div>
+<button type="button" id="v9Refresh" class="btn outline">Обновить</button>
+</div>
+</section>
+<div class="v9-layout">
+<section class="card v9-card">
+<div class="v9-head"><div><h2>Документы классов</h2><p>Каждому сочетанию измерений соответствует один документ.</p></div></div>
+<form id="v9Create" class="v9-create"><div class="field-wrap"><label for="v9Letter">Буква класса</label><input id="v9Letter" placeholder="А" maxlength="3" required autocomplete="off"></div><button class="btn primary" type="submit">Создать документ</button></form>
+<div class="v9-list" id="v9Docs"><p class="microcopy">Документы загружаются…</p></div>
+</section>
+<section class="card v9-card" id="v9Detail">
+<div class="v9-head"><div><h2 id="v9DetailTitle">Состав класса</h2><p id="v9DetailSubtitle">Выберите документ слева.</p></div><span id="v9Status" class="v9-status" hidden></span></div>
+<div id="v9DetailBody" hidden>
+<div class="v9-status-controls">
+<button type="button" id="v9Activate" class="btn outline">Активировать</button>
+<button type="button" id="v9Finish" class="btn outline">Завершить документ</button>
+</div>
+<form id="v9Enroll" class="v9-enroll"><div class="field-wrap"><label for="v9Student">Добавить ученика (GUID или логин)</label><select id="v9Student" required></select></div><button class="btn primary" type="submit">Зачислить</button></form>
+<p class="microcopy">Пока доступны только ученики, уже зарегистрированные в Supabase. Новые GUID из .vdop подключим после реализации выдачи учётных записей.</p>
+<div class="table-scroll"><table class="data-table"><thead><tr><th>Ученик / логин</th><th>GUID</th><th></th></tr></thead><tbody id="v9Members"></tbody></table></div>
+<p id="v9MemberCount" class="microcopy"></p>
+</div>
+</section></div></div></main></body></html>
