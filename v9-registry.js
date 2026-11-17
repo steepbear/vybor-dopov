@@ -1,245 +1,291 @@
-// V9, этап 1: локальный редактор школьного реестра .vdop.
-// ФИО не отправляются в Supabase: запросы только для определения филиала и роли методолога.
+// V9: admission registry (.vdop V2). FIO is processed ONLY in this browser.
+// HTTP requests contain UUIDs/year; never surname, name or classroom.
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import {SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY} from './supabase-config.js';
 import {readStudentsXlsx} from './xlsx-import.js';
+import {downloadCreatedStudentsXlsx} from './xlsx-export.js';
 
 const $=id=>document.getElementById(id);
-const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const MAX_STUDENTS=500;
-const MAX_VDOP_SIZE=2*1024*1024;
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=x=>String(x??'').normalize('NFC').trim().replace(/\s+/g,' ');
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NAME=/^[А-ЯЁа-яёA-Za-z][А-ЯЁа-яёA-Za-z'’\- ]{0,59}$/u;
-const LETTER=/^[А-ЯЁA-Z]{1,3}$/u;
-const FILE_HEADER='VDOP/1\n';
-const state={branchId:'',branchName:'',doc:null,rows:[],dirty:false};
-const norm=x=>String(x??'').normalize('NFC').trim().replace(/\s+/g,' ');
-function feedback(text,error=false){
- const node=$('registryNotice');node.textContent=text;node.className='live-message '+(error?'error':'ok');node.hidden=false;
+const HEADER_V2='VDOP/2\n',HEADER_V1='VDOP/1\n',LIMIT=500,MAX_SIZE=2*1024*1024;
+const state={client:null,branchId:'',branchName:'',branchCode:null,doc:null,
+ rows:[],dirty:false,busy:false,issued:new Map(),exported:true};
+function feedback(msg,bad=false){
+ const n=$('registryNotice');n.textContent=msg;n.className='live-message '+(bad?'error':'ok');n.hidden=false;
 }
-function requireDiscard(){
- if(!state.doc||!state.dirty)return true;
- return window.confirm('Есть несохранённые изменения. Заменить текущий реестр?');
-}
-function yearStart(){
- return Number($('registryYear').value);
-}
-function createDoc(){
- return {format:'VDOP',version:1,kind:'student_registry',registry_id:crypto.randomUUID(),
-  branch_id:state.branchId,branch_name:state.branchName,year_start:yearStart(),
-  grade:Number($('registryGrade').value),students:[]};
+function year(){return Number($('registryYear').value);}
+function createDoc(y=year(),registryId=crypto.randomUUID()){
+ return {format:'VDOP',version:2,kind:'school_admissions',registry_id:registryId,
+  branch_id:state.branchId,branch_name:state.branchName,admission_year:y,students:[]};
 }
 function student(id=crypto.randomUUID(),data={}){
  return {id,surname:norm(data.surname),name:norm(data.name),
-  class_letter:norm(data.class_letter).toUpperCase(),login:norm(data.login)};
+  login:norm(data.login),namesake_verified:data.namesake_verified===true};
 }
-function selectedYearGrade(){
- $('registryYear').value=String(state.doc.year_start);
- $('registryGrade').value=String(state.doc.grade);
- $('registryYear').disabled=Boolean(state.doc);
- $('registryGrade').disabled=Boolean(state.doc);
+function hasUnsavedCredentials(){return !state.exported&&[...state.issued.values()].some(x=>x.password);}
+function confirmDiscard(){
+ if(hasUnsavedCredentials()&&!confirm('Пароли новых учеников ещё не выгружены в Excel. Продолжить и потерять их?'))return false;
+ return !state.doc||!state.dirty||confirm('Есть несохранённые изменения. Заменить текущий реестр?');
 }
-function validateRows(){
- const seenNames=new Set(),seenIds=new Set();
- const problems=new Map();
- for(let i=0;i<state.rows.length;i++){
-  const r=state.rows[i];
-  const issues=[];
-  if(!UUID.test(r.id)||seenIds.has(r.id.toLowerCase()))issues.push('Повтор GUID');
-  seenIds.add(String(r.id).toLowerCase());
-  if(!LETTER.test(r.class_letter))issues.push('Буква класса');
-  if(!NAME.test(r.surname)||!NAME.test(r.name))issues.push('Фамилия или имя');
-  const key=r.class_letter+'|'+norm(r.surname).toLocaleLowerCase('ru')+'|'+norm(r.name).toLocaleLowerCase('ru');
-  if(seenNames.has(key))issues.push('Дубль ФИО в классе');
-  seenNames.add(key);
-  if(r.login && r.login.length>80)issues.push('Слишком длинный логин');
-  if(issues.length)problems.set(i,issues.join(', '));
- }
- return problems;
+function validation(){
+ const issues=new Map(),counts=new Map(),seen=new Set();
+ state.rows.forEach(r=>{
+  const key=norm(r.surname).toLocaleLowerCase('ru')+'|'+norm(r.name).toLocaleLowerCase('ru');
+  if(r.surname&&r.name)counts.set(key,(counts.get(key)||0)+1);
+ });
+ state.rows.forEach((r,i)=>{
+  const problems=[];
+  if(!UUID.test(r.id)||seen.has(r.id.toLowerCase()))problems.push('Повтор или ошибка GUID');
+  seen.add(String(r.id).toLowerCase());
+  if(!NAME.test(r.surname)||!NAME.test(r.name))problems.push('Проверьте фамилию и имя');
+  const key=norm(r.surname).toLocaleLowerCase('ru')+'|'+norm(r.name).toLocaleLowerCase('ru');
+  if((counts.get(key)||0)>1&&!r.namesake_verified)problems.push('Совпадение ФИО: подтвердите тёзку');
+  if(r.login&&r.login.length>80)problems.push('Слишком длинный логин');
+  if(problems.length)issues.set(i,problems.join('; '));
+ });
+ return {issues,counts};
 }
 function render(){
- const editor=$('registryEditor');editor.hidden=!state.doc;
+ $('registryEditor').hidden=!state.doc;
  $('registryNew').textContent=state.doc?'Закрыть реестр':'Новый пустой реестр';
  if(!state.doc)return;
- selectedYearGrade();
- const problems=validateRows();
+ $('registryYear').value=String(state.doc.admission_year);
+ $('registryYear').disabled=true;
+ const {issues,counts}=validation();
+ $('registrySummary').textContent=state.rows.length+' учеников · замечаний: '+issues.size+
+  (state.dirty?' · не сохранено':' · сохранено');
  $('registryDirty').hidden=!state.dirty;
- $('registrySummary').textContent=state.rows.length+' учеников · '+problems.size+' строк с замечаниями'+(state.dirty?' · не сохранено':' · сохранено');
- $('registrySave').disabled=Boolean(problems.size)||!state.rows.length;
- $('registryAdd').disabled=state.rows.length>=MAX_STUDENTS;
+ $('registrySave').disabled=state.busy||!state.rows.length||issues.size>0;
+ $('registryAdd').disabled=state.busy||state.rows.length>=LIMIT;
+ $('registryAdmit').disabled=state.busy||state.dirty||!state.rows.length||issues.size>0;
+ $('registryAdmit').textContent=state.busy?'Регистрация…':'Зарегистрировать учеников в системе';
+ $('registryExport').disabled=state.busy||![...state.issued.values()].some(x=>x.password);
  $('registryBody').innerHTML=state.rows.map((s,i)=>{
-  const problem=problems.get(i),cls=state.doc.grade+(s.class_letter||'?');
+  const problem=issues.get(i),key=norm(s.surname).toLocaleLowerCase('ru')+'|'+norm(s.name).toLocaleLowerCase('ru');
+  const duplicate=(counts.get(key)||0)>1;
+  const outcome=state.issued.get(s.id);
+  const label=outcome?.status==='created'?'Создан':outcome?.status==='exists'?'Уже зарегистрирован':
+    outcome?.status==='error'?'Ошибка: '+outcome.message:outcome?.status==='uncertain'?'Неизвестно: повторите запрос':
+    s.login?'Логин в файле':'Не зарегистрирован';
   return '<tr data-row="'+i+'" class="'+(problem?'registry-problem':'')+'">'+
    '<td>'+(i+1)+'</td>'+
-   '<td><div class="registry-class-fields"><input aria-label="Параллель" class="registry-grade" value="'+state.doc.grade+'" readonly tabindex="-1" title="Параллель задаётся для всего реестра"><input aria-label="Буква класса" maxlength="3" class="registry-letter" data-field="class_letter" value="'+esc(s.class_letter)+'"></div></td>'+
-   '<td><input aria-label="Фамилия" maxlength="60" data-field="surname" value="'+esc(s.surname)+'"></td>'+
-   '<td><input aria-label="Имя" maxlength="60" data-field="name" value="'+esc(s.name)+'"></td>'+
+   '<td><input aria-label="Фамилия" maxlength="60" data-field="surname" value="'+esc(s.surname)+'" '+(state.busy?'disabled':'')+'></td>'+
+   '<td><input aria-label="Имя" maxlength="60" data-field="name" value="'+esc(s.name)+'" '+(state.busy?'disabled':'')+'></td>'+
    '<td><code title="'+esc(s.id)+'">'+esc(s.id.slice(0,8))+'…</code></td>'+
-   '<td><small>'+esc(s.login||'После создания аккаунта')+'</small></td>'+
-   '<td class="'+(problem?'registry-error':'registry-valid')+'">'+esc(problem||'✓ Готов')+'</td>'+
-   '<td><button type="button" class="btn ghost mini" data-delete="'+i+'" aria-label="Удалить ученика">×</button></td></tr>';
+   '<td><small>'+esc(s.login||'После регистрации')+'</small></td>'+
+   '<td>'+ (duplicate?'<label class="registry-namesake"><input data-field="namesake_verified" type="checkbox" '+(s.namesake_verified?'checked ':'')+(state.busy?'disabled':'')+'>Это разные дети</label>':'—')+'</td>'+
+   '<td class="'+(problem?'registry-error':'registry-valid')+'">'+esc(problem||label)+'</td>'+
+   '<td><button type="button" class="btn ghost mini" data-delete="'+i+'" aria-label="Удалить ученика" '+(state.busy?'disabled':'')+'>×</button></td></tr>';
  }).join('');
+ $('registryPasswordNotice').hidden=!hasUnsavedCredentials();
 }
 function installDoc(doc,rows,dirty){
- state.doc=doc;state.rows=rows;state.dirty=dirty;
+ state.doc=doc;state.rows=rows;state.dirty=dirty;state.issued=new Map();state.exported=true;
  render();
 }
 function newRegistry(){
- if(!requireDiscard())return;
+ if(state.busy||!confirmDiscard())return;
  if(state.doc){
   state.doc=null;state.rows=[];state.dirty=false;
-  $('registryYear').disabled=false;
-  $('registryGrade').disabled=false;
-  render();
-  feedback('Реестр закрыт. Выберите учебный год и параллель, затем создайте новый реестр или откройте файл.');
+  state.issued.clear();state.exported=true;
+  $('registryYear').disabled=false;render();
+  feedback('Реестр закрыт. Выберите год и создайте новый или откройте .vdop.');
   return;
  }
- installDoc(createDoc(),[],true);
- feedback('Создан новый реестр. Добавьте учеников или загрузите список Excel.');
+ installDoc(createDoc(),[],true);feedback('Создан реестр зачисления без классов. Добавьте учеников.');
 }
-function parseClass(value){
- const found=/^([1-4])\s*[-«"\s]*\s*([А-ЯЁA-Z]{1,3})\s*[»"]?$/iu.exec(norm(value));
- return found?{grade:Number(found[1]),letter:found[2].toUpperCase()}:null;
-}
-async function importExcel(event){
- const file=event.target.files?.[0];event.target.value='';
- if(!file)return;
+async function importExcel(e){
+ const file=e.target.files?.[0];e.target.value='';
+ if(!file||state.busy)return;
  try{
-  if(!/\.xlsx$/i.test(file.name))throw Error('Нужен файл Excel с расширением .xlsx.');
   const sheet=await readStudentsXlsx(file);
-  const head=sheet.find(r=>r.cells.some(norm));
-  if(!head)throw Error('Excel пуст.');
-  const labels=head.cells.map(s=>norm(s).toLocaleLowerCase('ru').replace(/\s/g,''));
-  const indices={c:labels.indexOf('класс'),s:labels.indexOf('фамилия'),n:labels.indexOf('имя')};
-  if(Object.values(indices).some(x=>x<0))throw Error('Нужны колонки: Класс, Фамилия, Имя.');
-  const list=sheet.filter(r=>r.number>head.number&&r.cells.some(norm));
-  if(!list.length||list.length>MAX_STUDENTS)throw Error('Допустимо от 1 до '+MAX_STUDENTS+' учеников.');
-  const doc=createDoc();
-  const rows=[];
-  for(const row of list){
-   const cls=parseClass(row.cells[indices.c]);
-   if(!cls)throw Error('Строка '+row.number+': некорректный класс.');
-   if(cls.grade!==doc.grade)throw Error('Строка '+row.number+': файл содержит '+cls.grade+'-ю параллель, а выбрана '+doc.grade+'-я.');
-   rows.push(student(crypto.randomUUID(),{surname:row.cells[indices.s],name:row.cells[indices.n],class_letter:cls.letter}));
-  }
+  const head=sheet.find(r=>r.cells.some(norm));if(!head)throw Error('Excel пуст.');
+  const labels=head.cells.map(x=>norm(x).toLocaleLowerCase('ru').replace(/\s/g,''));
+  const s=labels.indexOf('фамилия'),n=labels.indexOf('имя');
+  if(s<0||n<0)throw Error('Нужны столбцы «Фамилия» и «Имя». Класс не нужен.');
+  const lines=sheet.filter(r=>r.number>head.number&&r.cells.some(norm));
+  if(!lines.length||lines.length>LIMIT)throw Error('Допустимо от 1 до '+LIMIT+' учеников.');
+  const doc=createDoc(),rows=lines.map(r=>student(crypto.randomUUID(),{
+   surname:r.cells[s],name:r.cells[n]
+  }));
   installDoc(doc,rows,true);
-  const errors=validateRows().size;
-  feedback(errors?'Импортировано '+rows.length+' строк. Исправьте '+errors+' замечаний до сохранения.':'Импортировано '+rows.length+' учеников. Сохраните реестр .vdop.',Boolean(errors));
- }catch(e){feedback('Ошибка Excel: '+(e?.message||String(e)),true);}
+  const bad=validation().issues.size;
+  feedback('Excel прочитан: '+rows.length+' учеников. Класс не требуется и не сохраняется. '+
+   (bad?'Исправьте замечания: '+bad+'.':'Сохраните новый .vdop.'),Boolean(bad));
+ }catch(err){feedback('Ошибка Excel: '+(err?.message||String(err)),true);}
 }
-function validateDoc(data){
- if(!data||typeof data!=='object'||Array.isArray(data)||data.format!=='VDOP'||data.version!==1||data.kind!=='student_registry')
-  throw Error('Неизвестный формат реестра или версия .vdop.');
- if(!UUID.test(data.registry_id)||!UUID.test(data.branch_id))throw Error('В реестре повреждены идентификаторы.');
- if(data.branch_id!==state.branchId)throw Error('Реестр принадлежит другому филиалу. Загрузка запрещена.');
- if(!Number.isInteger(data.year_start)||data.year_start<2025||data.year_start>2100)throw Error('Некорректный учебный год.');
- if(!Number.isInteger(data.grade)||data.grade<1||data.grade>4)throw Error('Некорректная параллель.');
- if(!Array.isArray(data.students)||data.students.length>MAX_STUDENTS)throw Error('Слишком много учеников.');
- const ids=new Set();
- const rows=data.students.map((item,i)=>{
-  if(!item||typeof item!=='object'||Array.isArray(item))throw Error('Некорректная запись ученика №'+(i+1));
-  if(!UUID.test(item.id))throw Error('Некорректный GUID в строке '+(i+1));
-  if(ids.has(item.id.toLowerCase()))throw Error('Повтор GUID в реестре.');
-  ids.add(item.id.toLowerCase());
-  for(const prop of ['surname','name','class_letter','login']){
-   if(item[prop]!==undefined&&typeof item[prop]!=='string')throw Error('Повреждено поле '+prop+' в строке '+(i+1));
-  }
-  return student(item.id,item);
+function parseVdop(text){
+ const old=text.startsWith(HEADER_V1),header=old?HEADER_V1:HEADER_V2;
+ if(!text.startsWith(header))throw Error('Неизвестный формат .vdop.');
+ const data=JSON.parse(text.slice(header.length));
+ if(!data||typeof data!=='object'||Array.isArray(data)||data.format!=='VDOP'||
+    data.kind!==(old?'student_registry':'school_admissions')||data.version!==(old?1:2))
+   throw Error('Неверная версия или структура реестра.');
+ if(!UUID.test(data.registry_id)||!UUID.test(data.branch_id)||data.branch_id!==state.branchId)
+   throw Error('Некорректный GUID реестра или реестр другого филиала.');
+ const y=old?data.year_start:data.admission_year;
+ if(!Number.isInteger(y)||y<2025||y>2100)throw Error('Некорректный год зачисления.');
+ if(!Array.isArray(data.students)||data.students.length>LIMIT)throw Error('Некорректный список учеников.');
+ const ids=new Set(),rows=data.students.map((r,i)=>{
+  if(!r||typeof r!=='object'||Array.isArray(r)||!UUID.test(r.id))throw Error('Неверный GUID строки '+(i+1));
+  const id=r.id.toLowerCase();if(ids.has(id))throw Error('Повтор GUID в файле.');
+  ids.add(id);
+  if(['surname','name','login'].some(k=>r[k]!==undefined&&typeof r[k]!=='string'))
+    throw Error('Ошибка строки '+(i+1));
+  return student(id,r);
  });
- return {doc:{...createDoc(),registry_id:data.registry_id,year_start:data.year_start,grade:data.grade},rows};
+ return {doc:createDoc(y,data.registry_id),rows,old};
 }
-async function openVdop(event){
- const file=event.target.files?.[0];event.target.value='';
- if(!file||!requireDiscard())return;
+async function openVdop(e){
+ const file=e.target.files?.[0];e.target.value='';
+ if(!file||state.busy||!confirmDiscard())return;
  try{
-  if(!/\.vdop$/i.test(file.name)||file.size>MAX_VDOP_SIZE)throw Error('Нужен файл .vdop размером до 2 МБ.');
-  const content=await file.text();
-  if(!content.startsWith(FILE_HEADER))throw Error('Это не реестр Выбора допов V9.');
-  const data=JSON.parse(content.slice(FILE_HEADER.length));
-  const checked=validateDoc(data);
-  installDoc(checked.doc,checked.rows,false);
-  const n=validateRows().size;
-  feedback('Открыт реестр: '+checked.rows.length+' учеников'+(n?', замечаний: '+n:'')+'.',Boolean(n));
- }catch(e){feedback('Ошибка открытия .vdop: '+(e?.message||String(e)),true);}
+  if(!/\.vdop$/i.test(file.name)||file.size>MAX_SIZE)throw Error('Выберите .vdop не больше 2 МБ.');
+  const parsed=parseVdop(await file.text());
+  installDoc(parsed.doc,parsed.rows,parsed.old);
+  const bad=validation().issues.size;
+  feedback((parsed.old?'Файл V1 преобразован в реестр зачисления V2; сведения о классах исключены. Сохраните новую копию.':
+   'Открыт реестр зачисления.')+' Учеников: '+parsed.rows.length+', замечаний: '+bad+'.',Boolean(bad));
+ }catch(err){feedback('Ошибка открытия: '+(err?.message||String(err)),true);}
 }
 function addStudent(){
- if(!state.doc||state.rows.length>=MAX_STUDENTS)return;
- const letter=state.rows.at(-1)?.class_letter||'А';
- state.rows.push(student(crypto.randomUUID(),{class_letter:letter}));
- state.dirty=true;render();
- const fields=$('registryBody').querySelector('tr:last-child [data-field="surname"]');fields?.focus();
+ if(!state.doc||state.busy||state.rows.length>=LIMIT)return;
+ state.rows.push(student());state.dirty=true;render();
+ $('registryBody').querySelector('tr:last-child [data-field="surname"]')?.focus();
 }
-function updateRow(event){
- const field=event.target?.dataset?.field;
- const tr=event.target.closest('tr[data-row]');
- if(!field||!tr)return;
- const index=Number(tr.dataset.row);
- if(!Number.isInteger(index)||!state.rows[index])return;
- if(!['surname','name','class_letter'].includes(field))return;
- state.rows[index][field]=field==='class_letter'?norm(event.target.value).toUpperCase():norm(event.target.value);
+function changeRow(e){
+ const tr=e.target.closest('tr[data-row]'),field=e.target.dataset.field;
+ if(!tr||!['surname','name','namesake_verified'].includes(field)||state.busy)return;
+ const row=state.rows[Number(tr.dataset.row)];if(!row)return;
+ row[field]=field==='namesake_verified'?e.target.checked:norm(e.target.value);
  state.dirty=true;render();
 }
-function deleteRow(event){
- const button=event.target.closest('[data-delete]');if(!button)return;
- const index=Number(button.dataset.delete);
- if(!state.rows[index])return;
- if(!window.confirm('Удалить строку из локального реестра? GUID будет потерян. Записи в Supabase не меняются.'))return;
- state.rows.splice(index,1);state.dirty=true;render();
+function deleteRow(e){
+ const b=e.target.closest('[data-delete]');if(!b||state.busy)return;
+ const i=Number(b.dataset.delete),r=state.rows[i];if(!r)return;
+ if(!confirm('Удалить строку из локального .vdop? Учётная запись в Supabase не удаляется.'))return;
+ state.rows.splice(i,1);state.issued.delete(r.id);state.dirty=true;render();
+}
+function download(blob,name){
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download=name;document.body.append(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),6000);
 }
 function saveVdop(){
- if(!state.doc)return;
- const problems=validateRows();
- if(problems.size){feedback('Исправьте ошибки в '+problems.size+' строках.',true);return;}
- if(!state.rows.length){feedback('Добавьте хотя бы одного ученика.',true);return;}
- const payload={...state.doc,students:state.rows.map(r=>({...r}))};
- const bytes=FILE_HEADER+JSON.stringify(payload,null,2);
- const blob=new Blob([bytes],{type:'application/octet-stream'});
- const href=URL.createObjectURL(blob);
- const safeName=norm(state.branchName).replace(/[^А-ЯЁа-яёA-Za-z0-9_-]+/gu,'_').slice(0,30);
- const a=document.createElement('a');
- a.href=href;a.download=safeName+'_'+state.doc.year_start+'_'+state.doc.grade+'_параллель.vdop';
- document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(href),6000);
- state.dirty=false;render();feedback('Реестр сохранён: '+state.rows.length+' учеников. Храните файл в защищённом месте.');
+ if(!state.doc||state.busy)return;
+ const bad=validation().issues.size;
+ if(bad||!state.rows.length){feedback('Исправьте замечания и добавьте учеников.',true);return;}
+ const data={...state.doc,students:state.rows.map(r=>({...r}))};
+ const text=HEADER_V2+JSON.stringify(data,null,2),slug=norm(state.branchName)
+   .replace(/[^А-ЯЁа-яёA-Za-z0-9_-]+/gu,'_').slice(0,30);
+ download(new Blob([text],{type:'application/octet-stream'}),
+   slug+'_'+state.doc.admission_year+'_зачисление.vdop');
+ state.dirty=false;render();
+ feedback('Скачан .vdop с '+state.rows.length+' учениками. Сохраните файл в защищённом месте.');
 }
-function setYears(){
- const year=new Date().getFullYear();const starts=Array.from({length:11},(_,i)=>year-2+i);
- $('registryYear').innerHTML=starts.map(x=>'<option value="'+x+'">'+x+'/'+(x+1)+'</option>').join('');
- const current=new Date(),preferred=current.getFullYear()+(current.getMonth()>=8?0:-1);
- $('registryYear').value=String(preferred);
+async function admit(){
+ if(state.busy||!state.doc||state.dirty||validation().issues.size)return;
+ if(!confirm('Зарегистрировать учеников из этого .vdop? GUID останутся постоянными, класс не назначается. Новые пароли будут показаны один раз.'))return;
+ state.busy=true;render();let processed=0,errors=0,created=0,already=0;
+ try{
+  const pending=state.rows.filter(r=>!['created','exists'].includes(state.issued.get(r.id)?.status));
+  for(let i=0;i<pending.length;i+=5){
+   const batch=pending.slice(i,i+5);
+   // Never send FIO or local-only flags in this request.
+   let answer;
+   try{
+    const {data,error}=await state.client.functions.invoke('school-accounts',{
+      body:{action:'v9_admit_students',admission_year:state.doc.admission_year,
+       rows:batch.map(r=>({id:r.id}))}
+    });
+    if(error||data?.error)throw Error(error?.message||data.error);
+    answer=data;
+   }catch(err){
+    batch.forEach(r=>state.issued.set(r.id,{status:'uncertain',message:String(err?.message||err)}));
+    feedback('Ответ сервера не получен. Повторная попытка безопасна благодаря проверке GUID.',true);
+    errors+=batch.length;break;
+   }
+   const mapped=new Map((answer?.rows||[]).map(r=>[String(r.id).toLowerCase(),r]));
+   for(const r of batch){
+    const result=mapped.get(r.id.toLowerCase())||{status:'error',message:'Нет ответа для GUID'};
+    if(result.status==='created'||result.status==='exists'){
+     r.login=result.login;state.dirty=true;
+     if(result.status==='created'){created++;state.exported=false;}
+     else already++;
+    }else errors++;
+    state.issued.set(r.id,result);processed++;
+   }
+   render();
+   feedback('Регистрация: обработано '+processed+' из '+pending.length+'. Новых: '+created+'. Ошибок: '+errors+'.',Boolean(errors));
+  }
+  feedback('Завершено. Создано: '+created+', ранее существовали: '+already+', ошибки: '+errors+
+    '. Сохраните обновлённый .vdop'+(created?' и выгрузите Excel с паролями.':'.'),Boolean(errors));
+ }finally{state.busy=false;render();}
+}
+function exportPasswords(){
+ const issued=state.rows.flatMap(r=>{
+  const result=state.issued.get(r.id);
+  return result?.status==='created'&&result.password?[{
+   className:'Не распределён',surname:r.surname,name:r.name,login:result.login,password:result.password
+  }]:[];
+ });
+ if(!issued.length){feedback('Новых паролей для выгрузки нет.',true);return;}
+ try{
+  const count=downloadCreatedStudentsXlsx(issued,'Зачисление_'+state.doc.admission_year+'_логины_пароли.xlsx');
+  state.exported=true;render();
+  feedback('Скачан Excel с '+count+' логинами и паролями. ФИО в нём сформированы локально.');
+ }catch(err){feedback('Ошибка формирования Excel: '+String(err?.message||err),true);}
+}
+function initYears(){
+ const today=new Date().getFullYear();
+ $('registryYear').innerHTML=Array.from({length:11},(_,i)=>today-2+i)
+  .map(y=>'<option value="'+y+'">'+y+'</option>').join('');
+ $('registryYear').value=String(today);
 }
 async function start(){
- setYears();
+ initYears();
  try{
-  const client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
-  const current=await client.auth.getUser();
-  if(current.error||!current.data?.user)throw Error('Войдите в кабинет методолога на главной странице.');
-  const {data:profile,error:profileError}=await client.from('profiles').select('role,branch_id,is_active')
-   .eq('user_id',current.data.user.id).single();
-  if(profileError||profile?.role!=='methodologist'||profile.is_active!==true||!profile.branch_id)
-   throw Error('Редактор доступен только активному методологу своего филиала.');
-  const {data:branch,error:branchError}=await client.from('branches').select('id,name').eq('id',profile.branch_id).single();
-  if(branchError||!branch)throw Error('Не удалось определить филиал методолога.');
-  state.branchId=branch.id;state.branchName=branch.name;
-  $('branchTitle').textContent='Методолог · '+branch.name;
-  $('registryBranchName').textContent=branch.name;
+  state.client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{
+   auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}
+  });
+  const {data:auth,error:authError}=await state.client.auth.getUser();
+  if(authError||!auth?.user)throw Error('Войдите в кабинет методолога.');
+  const {data:p,error:pe}=await state.client.from('profiles')
+   .select('role,branch_id,is_active').eq('user_id',auth.user.id).single();
+  if(pe||p?.role!=='methodologist'||!p.is_active||!p.branch_id)
+   throw Error('Доступ только для активного методолога.');
+  const {data:b,error:be}=await state.client.from('branches')
+   .select('id,name,v9_code').eq('id',p.branch_id).single();
+  if(be||!b||!b.v9_code)throw Error('Не удалось получить код филиала.');
+  state.branchId=b.id;state.branchName=b.name;state.branchCode=b.v9_code;
+  $('branchTitle').textContent='Методолог · '+b.name;
+  $('registryBranchName').textContent=b.name+' · Ф'+b.v9_code;
   $('registryWorkspace').hidden=false;
- }catch(error){
-  $('registryNoAccess').hidden=false;$('registryAccessMessage').textContent=error?.message||String(error);
+ }catch(err){
+  $('registryNoAccess').hidden=false;
+  $('registryAccessMessage').textContent=String(err?.message||err);
   $('branchTitle').textContent='Требуется вход';
  }
 }
 $('registryNew').addEventListener('click',newRegistry);
 $('registryExcelAction').addEventListener('click',()=>{
- // Excel создаёт новый локальный реестр, а не пополняет текущий.
- // Отклонение подтверждения или отмена выбора файла не меняют данные.
- if(state.doc && !window.confirm('Текущие данные будут заменены данными из файла. Продолжить?'))return;
+ if(state.busy)return;
+ if(state.doc&&hasUnsavedCredentials()&&!confirm('Пароли новых учеников ещё не выгружены в Excel. Продолжить и потерять их?'))return;
+ if(state.doc&&!confirm('Текущие данные будут заменены данными из файла. Продолжить?'))return;
  $('registryExcel').click();
 });
 $('registryExcel').addEventListener('change',importExcel);
 $('registryOpen').addEventListener('change',openVdop);
 $('registryAdd').addEventListener('click',addStudent);
-$('registrySave').addEventListener('click',saveVdop);
-$('registryBody').addEventListener('change',updateRow);
+$('registryBody').addEventListener('change',changeRow);
 $('registryBody').addEventListener('click',deleteRow);
-window.addEventListener('beforeunload',event=>{if(state.doc&&state.dirty){event.preventDefault();event.returnValue='';}});
+$('registrySave').addEventListener('click',saveVdop);
+$('registryAdmit').addEventListener('click',admit);
+$('registryExport').addEventListener('click',exportPasswords);
+window.addEventListener('beforeunload',e=>{
+ if(state.doc&&(state.dirty||hasUnsavedCredentials())){e.preventDefault();e.returnValue='';}
+});
 start();
