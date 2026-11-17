@@ -32,8 +32,31 @@
 <button type="button" id="v9Finish" class="btn outline">Завершить документ</button>
 </div>
 <form id="v9Enroll" class="v9-enroll"><div class="field-wrap"><label for="v9Student">Добавить ученика (GUID или логин)</label><select id="v9Student" required></select></div><button class="btn primary" type="submit">Зачислить</button></form>
-<p class="microcopy">Пока доступны только ученики, уже зарегистрированные в Supabase. Новые GUID из .vdop подключим после реализации выдачи учётных записей.</p>
+<p class="microcopy">Здесь можно добавить одного зарегистрированного ученика. Для массового зачисления используйте .vdop ниже.</p>
 <div class="table-scroll"><table class="data-table"><thead><tr><th>Ученик / логин</th><th>GUID</th><th></th></tr></thead><tbody id="v9Members"></tbody></table></div>
 <p id="v9MemberCount" class="microcopy"></p>
 </div>
-</section></div></div></main></body></html>
+</section></div>
+<section class="card v9-card v9-bulk-card">
+<div class="v9-head"><div><h2>Массовое распределение по классам</h2>
+<p>Откройте локальный .vdop с уже зарегистрированными учениками. Выберите строки и назначьте им класс текущего учебного года. ФИО в базу не отправляются.</p></div></div>
+<div class="v9-bulk-bar">
+<div class="field-wrap"><label for="v9BulkFile">Локальный реестр</label><input type="file" id="v9BulkFile" accept=".vdop"></div>
+<div id="v9BulkFileName" class="v9-readonly">Файл .vdop не выбран</div></div>
+<div id="v9BulkControls" hidden>
+<div class="v9-bulk-bar">
+<div class="field-wrap"><label for="v9BulkSearch">Поиск по локальному файлу</label><input id="v9BulkSearch" placeholder="Фамилия, имя или GUID"></div>
+<button type="button" class="btn outline" id="v9BulkAll">Отметить всех в списке</button>
+<button type="button" class="btn outline" id="v9BulkClear">Снять отметки</button>
+<div class="field-wrap"><label for="v9BulkDest">Класс отмеченных</label><select id="v9BulkDest"></select></div>
+<button type="button" class="btn outline" id="v9BulkApply">Назначить отмеченным</button>
+</div>
+<div class="table-scroll v9-bulk-table"><table class="data-table">
+<thead><tr><th>✓</th><th>Фамилия и имя (локально)</th><th>GUID</th><th>Текущее состояние</th><th>Класс назначения</th></tr></thead>
+<tbody id="v9BulkBody"></tbody></table></div>
+<div class="v9-bulk-bottom"><p id="v9BulkSummary" class="microcopy"></p>
+<button type="button" class="btn primary" id="v9BulkSubmit">Зачислить выбранных</button></div>
+</div>
+<p class="microcopy">Для перевода в другой класс сначала уберите ученика из прежнего документа. Завершённые документы менять нельзя. Данные .vdop используются только в браузере.</p>
+</section>
+</div></main></body></html>
