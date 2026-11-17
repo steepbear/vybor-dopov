@@ -21,7 +21,7 @@ async function task(action,{silent=false}={}){
  state.busy=true;
  document.querySelectorAll('#v9Workspace button').forEach(b=>b.disabled=true);
  try{await action();await load();if(!silent)tell('Изменения сохранены.');return true;}
- catch(e){tell(e.message||String(e),true);return false;}
+ catch(e){try{await load();}catch{}tell(e.message||String(e),true);return false;}
  finally{state.busy=false;document.querySelectorAll('#v9Workspace button').forEach(b=>b.disabled=false);render();}
 }
 function filteredDocs(){return state.docs.filter(d=>d.year_start===year()&&d.grade===grade()).sort((a,b)=>a.class_letter.localeCompare(b.class_letter,'ru'));}
@@ -145,19 +145,25 @@ function renderBulk(){
  const available=docs.some(d=>d.status!=='finished');
  $('v9BulkFileName').textContent=bulk.rows.length?'Загружено '+bulk.rows.length+' учеников':'Файл .vdop не выбран';
  $('v9BulkControls').hidden=!bulk.rows.length;
+ const previousDest=$('v9BulkDest').value;
  $('v9BulkDest').innerHTML='<option value="">Класс для отмеченных</option>'+docs.map(d=>
   '<option value="'+esc(d.id)+'">'+d.grade+esc(d.class_letter)+'</option>').join('');
+ if(docs.some(d=>d.id===previousDest))$('v9BulkDest').value=previousDest;
  const visible=bulkCurrentRows();
  let ready=0,missing=0,other=0,same=0;
+ for(const r of bulk.rows){
+  const current=occupied.get(r.id),target=bulk.targets.get(r.id)||'';
+  if(!known.has(r.id))missing++;
+  else if(current&&target===current)same++;
+  else if(current)other++;
+  else if(target&&docs.some(d=>d.id===target))ready++;
+ }
  const rows=visible.map(r=>{
   const current=occupied.get(r.id),target=bulk.targets.get(r.id)||'';
   const canAssign=known.has(r.id)&&!current;
   const classDoc=current&&state.docs.find(d=>d.id===current);
   const label=!known.has(r.id)?'Сначала зарегистрируйте ученика':
     current?'Уже в '+(classDoc?classDoc.grade+classDoc.class_letter:'другом классе'):'Не распределён';
-  if(!known.has(r.id))missing++;else if(current&&target===current)same++;
-  else if(current)other++;
-  else if(target&&docs.some(d=>d.id===target))ready++;
   const changed=bulk.marked.has(r.id);
   return '<tr><td><input aria-label="Выбрать строку" type="checkbox" data-bulk-check="'+esc(r.id)+'" '+(changed?'checked ':'')+(!canAssign?'disabled':'')+'></td>'+
    '<td>'+esc(r.surname)+' '+esc(r.name)+'</td>'+
