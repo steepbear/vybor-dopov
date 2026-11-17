@@ -36,3 +36,10 @@
 .registry-footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:17px}
 .registry-table .btn.mini{font-size:15px}
 @media(max-width:700px){.registry-shell{padding:15px}.registry-heading{flex-direction:column}.registry-card{padding:15px}.registry-toolbar{display:grid;grid-template-columns:1fr 1fr}.registry-branch{grid-column:1/-1}.registry-actions{display:grid;grid-template-columns:1fr 1fr}.registry-actions .btn{white-space:normal;text-align:center}.registry-footer{flex-direction:column}.registry-footer .btn{width:100%}}
+
+.registry-admit-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.registry-admit-actions .btn{margin-top:0}
+.registry-namesake{display:flex;align-items:center;gap:6px;font-size:11px;white-space:nowrap;color:#79531e}
+.registry-table .registry-namesake input{width:16px;min-width:16px;min-height:16px}
+.registry-password-warning{font-size:13px;color:#a64527;background:#fff0dc;border:1px solid #eec39b;border-radius:8px;padding:10px;margin-top:10px}
+@media(max-width:700px){.registry-admit-actions{flex-direction:column}.registry-admit-actions .btn{width:100%}}
