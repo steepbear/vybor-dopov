@@ -43,3 +43,7 @@
 .registry-table .registry-namesake input{width:16px;min-width:16px;min-height:16px}
 .registry-password-warning{font-size:13px;color:#a64527;background:#fff0dc;border:1px solid #eec39b;border-radius:8px;padding:10px;margin-top:10px}
 @media(max-width:700px){.registry-admit-actions{flex-direction:column}.registry-admit-actions .btn{width:100%}}
+
+.registry-heading-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.registry-heading-actions .btn{white-space:nowrap}
+@media(max-width:700px){.registry-heading-actions{justify-content:flex-start}}
