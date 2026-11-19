@@ -38,19 +38,19 @@
 </div>
 </section></div>
 <section class="card v9-card v9-bulk-card">
-<div class="v9-head"><div><h2>Массовое распределение по классам</h2>
-<p>Откройте локальный .vdop с уже зарегистрированными учениками. Выберите строки и назначьте им класс текущего учебного года. ФИО в базу не отправляются.</p></div></div>
-<div class="v9-bulk-bar">
-<div class="field-wrap"><label for="v9BulkFile">Локальный реестр</label><input type="file" id="v9BulkFile" accept=".vdop"></div>
-<div id="v9BulkFileName" class="v9-readonly">Файл .vdop не выбран</div></div>
-<div id="v9BulkControls" hidden>
+<div class="v9-head v9-bulk-head"><div><h2>Массовое распределение по классам</h2>
+<p>Откройте локальный .vdop с уже зарегистрированными учениками. Выберите строки и назначьте им класс текущего учебного года. ФИО в базу не отправляются.</p></div>
+<div id="v9BulkFileName" class="v9-readonly" role="status" aria-live="polite">Файл .vdop не выбран</div></div>
 <div class="v9-bulk-bar">
 <div class="field-wrap"><label for="v9BulkSearch">Поиск по локальному файлу</label><input id="v9BulkSearch" placeholder="Фамилия, имя или GUID"></div>
+<div class="v9-bulk-file-picker"><input type="file" id="v9BulkFile" class="v9-bulk-file-input" accept=".vdop"><label for="v9BulkFile" class="btn outline">Выбрать .vdop</label></div>
+<div id="v9BulkActions" class="v9-bulk-actions" hidden>
 <button type="button" class="btn outline" id="v9BulkAll">Отметить всех в списке</button>
 <button type="button" class="btn outline" id="v9BulkClear">Снять отметки</button>
 <div class="field-wrap"><label for="v9BulkDest">Класс отмеченных</label><select id="v9BulkDest"></select></div>
 <button type="button" class="btn outline" id="v9BulkApply">Назначить отмеченным</button>
-</div>
+</div></div>
+<div id="v9BulkControls" hidden>
 <div class="table-scroll v9-bulk-table"><table class="data-table">
 <thead><tr><th>✓</th><th>Фамилия и имя (локально)</th><th>GUID</th><th>Текущее состояние</th><th>Класс назначения</th></tr></thead>
 <tbody id="v9BulkBody"></tbody></table></div>
