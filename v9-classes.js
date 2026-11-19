@@ -145,6 +145,8 @@ function renderBulk(){
  const available=docs.some(d=>d.status!=='finished');
  $('v9BulkFileName').textContent=bulk.rows.length?'Загружено '+bulk.rows.length+' учеников':'Файл .vdop не выбран';
  $('v9BulkControls').hidden=!bulk.rows.length;
+ $('v9BulkActions').hidden=!bulk.rows.length;
+ $('v9BulkSearch').disabled=!bulk.rows.length;
  const previousDest=$('v9BulkDest').value;
  $('v9BulkDest').innerHTML='<option value="">Класс для отмеченных</option>'+docs.map(d=>
   '<option value="'+esc(d.id)+'">'+d.grade+esc(d.class_letter)+'</option>').join('');
