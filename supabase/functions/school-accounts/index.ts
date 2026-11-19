@@ -269,7 +269,7 @@ async function admitStudentsV9(actor:any,body:any){
     .eq('id',actor.branchId).single());
   if(!Number.isInteger(branch.v9_code)||branch.v9_code<1)
     throw new RequestError('Не назначен код филиала',409);
-  await throttle('v9_admit:'+actor.id,300);
+  await throttle('v9_admit:'+actor.id,100);
   const results=[],seen=new Set<string>();
   for(const item of rows){
     const id=String(item?.id||'').toLowerCase();
