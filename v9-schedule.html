@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Допы и расписание · Выбор допов V9</title>
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./live.css">
+  <link rel="stylesheet" href="./v9-schedule.css">
+  <script type="module" src="./v9-schedule.js"></script>
+</head>
+<body>
+  <header class="topbar"><div class="shell topbar-content">
+    <a class="brand" href="./index.html"><span class="logo">✦</span><span class="brand-name">Выбор <strong>допов</strong><small>V9 · Расписание</small></span></a>
+    <div class="top-user"><span id="v9User">Проверка доступа…</span><a class="btn outline mini" href="./index.html">Главное меню</a></div>
+  </div></header>
+  <main class="shell v9-schedule-main">
+    <div class="v9-page-heading"><div><div class="overline">V9 · Этап 4</div><h1>Допы и расписание</h1>
+      <p>Допы — постоянный справочник филиала. Группы и занятия относятся к конкретному учебному году.</p></div>
+      <a class="btn outline" href="./index.html">← Главное меню</a>
+    </div>
+    <div id="v9Message" class="live-message" role="status" aria-live="polite" hidden></div>
+    <section id="v9NoAccess" class="card v9-card" hidden><h2>Нужен вход методолога</h2><p id="v9NoAccessText">Авторизуйтесь в основном кабинете.</p><a class="btn primary" href="./index.html">Войти в кабинет</a></section>
+
+    <div id="v9Workspace" hidden>
+      <section class="card v9-card v9-context">
+        <div class="field-wrap"><label for="v9Year">Учебный год</label><select id="v9Year"></select></div>
+        <div class="field-wrap"><label>Филиал</label><div class="v9-readonly" id="v9Branch">—</div></div>
+        <button id="v9Refresh" type="button" class="btn outline">Обновить</button>
+      </section>
+
+      <div class="v9-top-grid">
+        <section class="card v9-card">
+          <div class="v9-section-title"><h2>Справочник допов</h2><span id="v9ElectivesCount" class="v9-count"></span></div>
+          <p class="v9-hint">Создаются один раз для филиала. Параллель выбирается у группы в расписании.</p>
+          <form id="v9ElectiveForm" class="v9-create-elective">
+            <div class="field-wrap"><label for="v9ElectiveName">Название допа</label><input id="v9ElectiveName" required minlength="2" maxlength="120" placeholder="Например, Шахматная школа"></div>
+            <button type="submit" class="btn primary">Добавить доп</button>
+          </form>
+          <div id="v9Electives" class="v9-elective-list" aria-live="polite"></div>
+        </section>
+
+        <section class="card v9-card">
+          <div class="v9-section-title"><h2>Документ «Расписание допов»</h2><span id="v9DocStatus" class="v9-status">Не создан</span></div>
+          <p id="v9DocSubtitle" class="v9-hint">Один документ на филиал и учебный год.</p>
+          <form id="v9DocumentForm" class="v9-doc-form">
+            <div class="field-wrap"><label for="v9Deadline">Выбор допов до</label><input id="v9Deadline" type="date" required></div>
+            <button id="v9SaveDocument" type="submit" class="btn primary">Создать документ</button>
+          </form>
+          <p class="v9-hint">Обычно выбор завершается 31 августа. Для тестирования срок можно задать позднее.</p>
+          <div class="v9-doc-actions" id="v9DocumentActions" hidden>
+            <button id="v9Activate" type="button" class="btn outline">Активировать</button>
+            <button id="v9Finish" type="button" class="btn outline">Завершить документ</button>
+          </div>
+          <div id="v9DocSummary" class="v9-document-summary"></div>
+        </section>
+      </div>
+
+      <section class="card v9-card v9-groups-card">
+        <div class="v9-section-title"><div><h2>Группы и занятия</h2><p class="v9-hint">У одного допа может быть несколько групп с разным временем и доступными параллелями.</p></div><span id="v9GroupsCount" class="v9-count"></span></div>
+        <div id="v9NoDocument" class="v9-empty">Создайте документ расписания для выбранного года — после этого здесь появится редактор групп.</div>
+        <div id="v9GroupsWorkspace" hidden>
+          <form id="v9GroupForm" class="v9-group-form">
+            <div class="v9-form-head"><h3 id="v9GroupFormTitle">Новая группа</h3><button type="button" id="v9GroupCancel" class="btn outline mini" hidden>Отменить изменение</button></div>
+            <div class="v9-group-fields">
+              <div class="field-wrap"><label for="v9GroupElective">Доп</label><select id="v9GroupElective" required></select></div>
+              <div class="field-wrap"><label for="v9GroupName">Название группы</label><input id="v9GroupName" maxlength="60" required placeholder="Группа №1"></div>
+              <div class="field-wrap"><label for="v9GroupKind">Тип</label><select id="v9GroupKind"><option value="regular">Обычный доп</option><option value="olympiad">Олимпиада</option></select></div>
+            </div>
+            <fieldset class="v9-grades"><legend>Доступные параллели</legend>
+              <div class="v9-grade-pills">
+                <label><input type="checkbox" name="v9Grade" value="1"> 1</label>
+                <label><input type="checkbox" name="v9Grade" value="2"> 2</label>
+                <label><input type="checkbox" name="v9Grade" value="3"> 3</label>
+                <label><input type="checkbox" name="v9Grade" value="4"> 4</label>
+              </div>
+              <p class="v9-hint">Если ничего не отмечено — группа доступна всем параллелям 1–4.</p>
+            </fieldset>
+            <div class="v9-slot-heading"><strong>Расписание занятий</strong><span class="v9-hint">Отметьте дни и временные интервалы</span></div>
+            <div id="v9SessionPicker" class="v9-session-picker"></div>
+            <div class="v9-form-footer"><button type="submit" id="v9SaveGroup" class="btn primary">Сохранить группу</button><p class="v9-hint" id="v9GroupNotice"></p></div>
+          </form>
+          <div class="v9-group-list-heading"><h3>Группы документа</h3></div>
+          <div id="v9Groups" class="v9-group-list"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
