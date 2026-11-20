@@ -51,7 +51,13 @@ async function perform(action,success){
     if(success)inform(success);
     return true;
   }catch(e){inform(readableError(e),true);try{await load();}catch{}return false;}
-  finally{state.busy=false;render();}
+  finally{
+    state.busy=false;
+    // Снимаем временную блокировку после любой операции (успех или ошибка).
+    // Затем render() снова отключит только действительно недоступные действия.
+    document.querySelectorAll('#v9Workspace button').forEach(b=>b.disabled=false);
+    render();
+  }
 }
 
 function renderElectives(){
